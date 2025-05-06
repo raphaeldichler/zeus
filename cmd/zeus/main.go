@@ -1,8 +1,8 @@
 package main
 
 import (
-	"zeus/command/deploy"
-	"zeus/command/network"
+	"github.com/raphaeldichler/zeus/command/deploy"
+	"github.com/raphaeldichler/zeus/command/network"
 
 	"github.com/docker/cli/cli/connhelper"
 	"github.com/docker/docker/client"

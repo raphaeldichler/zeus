@@ -1,4 +1,4 @@
-module zeus
+module github.com/raphaeldichler/zeus
 
 go 1.24.0
 
