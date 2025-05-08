@@ -1,61 +1,29 @@
 package main
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/docker/cli/cli/connhelper"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"os"
+	"path/filepath"
 )
 
 func main() {
-  conn, err := connhelper.GetConnectionHelper("ssh://azureuser@51.116.100.5")
-  if err != nil {
-    panic(err)
-  }
+	// Define tmpfs file location (in-memory)
+	tmpfsDir := "/dev/shm"
+	fileName := "secret.txt"
+	fullPath := filepath.Join(tmpfsDir, fileName)
 
-  cli, err := client.NewClientWithOpts(
-    client.WithDialContext(conn.Dialer),
-    client.WithAPIVersionNegotiation(),
-  )
+	// The secret to store
+	secretData := "API_KEY=super-secret-value\nDB_PASSWORD=very-secret-password"
+
+	// Create and write the file
+	err := os.WriteFile(fullPath, []byte(secretData), 0600)
 	if err != nil {
-		panic(err)
-	}
-	defer cli.Close()
-
-  resp, err := cli.ContainerCreate(
-    context.Background(),
-    &container.Config{
-      Image: "essaymentor.azurecr.io/poseidon/test:155",
-    },
-    &container.HostConfig{
-      AutoRemove: true,
-    },
-    nil, 
-    nil, 
-    "my-remoted-golang-container-1",
-  )
-	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to write secret file: %v\n", err)
+		return
 	}
 
-  if err := cli.ContainerStart(
-    context.Background(),
-    resp.ID,
-    container.StartOptions{},
-  ); err != nil {
-    panic(err)
-  }
-
-
-
-	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, ctr := range containers {
-		fmt.Printf("%s %s (status: %s)\n", ctr.ID, ctr.Image, ctr.Status)
-	}
+	fmt.Printf("Secret file written to: %s\n", fullPath)
+	fmt.Println("To copy into your Docker container, run the following command:")
+	fmt.Printf("  docker cp %s <container_id>:/path/in/container/%s\n", fullPath, fileName)
 }
+
