@@ -3,7 +3,7 @@ package filter
 import (
 	"net/http"
 	"strings"
-	v145 "zeus/internal/filter/v1.45"
+	v145 "github.com/raphaeldichler/zeus/internal/filter/v1.45"
 )
 
 type (

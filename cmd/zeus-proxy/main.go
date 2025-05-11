@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"zeus/internal/filter"
+	"github.com/raphaeldichler/zeus/internal/filter"
 
 	"github.com/sirupsen/logrus"
 )

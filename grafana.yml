@@ -21,3 +21,12 @@ container:
     - /var/run/docker.sock:/var/run/docker.sock
 
 
+secret:
+  my_serect: 
+    file: ./go.mod
+  database_pw:
+    file: ./wow.txt
+    
+
+
+
