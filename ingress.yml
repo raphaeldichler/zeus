@@ -1,0 +1,46 @@
+version: v1.0
+metadata:
+  name: gateway
+ingress:
+  domain: poseidon.com
+  tls:
+    hosts:
+      - admin.poseidon.com
+      - app.poseidon.com
+      - poseidon.com
+  rules:
+    - host: admin.poseidon.com
+      http:
+        paths:
+          - path: /
+            type: prefix
+            service:
+              name: grafana
+              port: application
+          - path: /rick
+            type: exact
+            service:
+              name: rickroll
+              port: application
+
+    - host: app.poseidon.com
+      http:
+        paths:
+          - path: /
+            type: prefix
+            service:
+              name: poseidon
+              port: application
+
+    - host: poseidon.com
+      http:
+        paths:
+          - path: /**
+            type: prefix
+            service:
+              name: frontend
+          - path: /rick
+            type: exact
+            service:
+              name: rickroll
+

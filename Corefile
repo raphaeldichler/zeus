@@ -1,8 +1,10 @@
-. {
-    hosts /etc/coredns/hosts {
+.:53 {
+    hosts {
+        10.0.0.1 foo.svc.local
         fallthrough
+        reload 5s
     }
-    forward . 8.8.8.8
     reload
+    log
+    errors
 }
-

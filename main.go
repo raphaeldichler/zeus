@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+
+	"github.com/raphaeldichler/zeus/internal/ingress"
 )
 
 func main() {
+  fmt.Println(ingress.NginxConfDefault)
+  /*
 	// Define tmpfs file location (in-memory)
 	tmpfsDir := "/dev/shm"
 	fileName := "secret.txt"
@@ -25,5 +27,6 @@ func main() {
 	fmt.Printf("Secret file written to: %s\n", fullPath)
 	fmt.Println("To copy into your Docker container, run the following command:")
 	fmt.Printf("  docker cp %s <container_id>:/path/in/container/%s\n", fullPath, fileName)
+  */
 }
 
