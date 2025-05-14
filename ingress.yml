@@ -2,18 +2,16 @@ version: v1.0
 metadata:
   name: gateway
 ingress:
-  domain: poseidon.com
-  tls:
-    hosts:
-      - admin.poseidon.com
-      - app.poseidon.com
-      - poseidon.com
+  local: false # default: false; if set to true the ingress will be deployed with domain as localhost and adds self signed certificates if tls is enabled
+  domains: 
+    - poseidon.com
   rules:
     - host: admin.poseidon.com
+      tls: true   # default: true
       http:
         paths:
           - path: /
-            type: prefix
+            matching: prefix
             service:
               name: grafana
               port: application
@@ -24,15 +22,18 @@ ingress:
               port: application
 
     - host: app.poseidon.com
+      tls: true
       http:
         paths:
           - path: /
-            type: prefix
+            matching: prefix
             service:
               name: poseidon
               port: application
 
-    - host: poseidon.com
+    - hosts: poseidon.com
+      ipv6: true # default: false
+      tls: false
       http:
         paths:
           - path: /**
@@ -44,3 +45,13 @@ ingress:
             service:
               name: rickroll
 
+# things to consider (is local: false)
+#   0) verify the configuration
+#     - exists the service which they map to
+#     - host valid, meaning: are all hosts subdomains?
+#   1) check if we are avaialbed over http for the defined domain, if stop
+#   2) persist the configuration /var/lib/zeus/poseidon/network/ingress/nginx/conf.d/admin.poseidon.com.conf
+#       - we only change if we have a change in data. e.g. if only add a new domain, we just "ignore" it
+#   3) if tls is true:
+#       - if host has changed relevant -> means: a new host was added, if we only modify paths we dont need to do any adapations
+#       - we trigger a job: certbot do https

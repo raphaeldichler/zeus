@@ -1,0 +1,12 @@
+Name:                 zeus-network-bf2442
+Creation Time:
+Labels:               zeus.poseidon.nw 
+                      app=redis
+IP:                   10.0.0.0/24
+
+Containers:
+  - Container ID:   <id>
+    Image:          traefik:v3.0
+    Image ID:       <id>
+    
+            
