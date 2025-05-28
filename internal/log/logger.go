@@ -1,5 +1,5 @@
 // Copyright 2025 The Zeus Authors.
-// Licensed under the MIT License. See the LICENSE file for details.
+// Licensed under the Apache License 2.0. See the LICENSE file for details.
 
 package log
 
