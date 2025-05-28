@@ -5,8 +5,9 @@
 
 # zeus network inspect
 
+# zeusd: /v1.0/applications/poseidon/services/deploy
 
-version: v1
+version: v1.0
 metadata:
   name: grafana
 container:
@@ -18,5 +19,14 @@ container:
     - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
   volumes:
     - /var/run/docker.sock:/var/run/docker.sock
+
+
+secret:
+  my_serect: 
+    file: ./go.mod
+  database_pw:
+    file: ./wow.txt
+    
+
 
 

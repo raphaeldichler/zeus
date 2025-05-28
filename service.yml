@@ -1,0 +1,23 @@
+version: v1.0
+metadata:
+  name: poseidon
+service:
+  network:
+    domain: poseidon # poseidon.svc.poseidon.local
+    ports:
+      - name: application # poseidon.svc.poseidon.local:8080
+        port: 8080
+      - name: prometheus # poseidon.svc.poseidon.local:5000 -> poseidon:application
+        port: 5000
+
+  secrets:
+    - name: poseidon/database_password # will be inside the container /var/secrets/poseidon/database_password
+    - name: poseidon/email_connection_string # /var/secrets/poseidon/email_connection_string
+
+  container:
+    image: grafana:latest
+    env:
+      - name: GRAFANA_ADMIN_NAME
+        value: ${GRAFANA_ADMIN_NAME} # from local env which calls
+
+
