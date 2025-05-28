@@ -5,6 +5,7 @@ ingress:
   local: false # default: false; if set to true the ingress will be deployed with domain as localhost and adds self signed certificates if tls is enabled
   domains: 
     - poseidon.com
+  ipv6: true  # default: false
   rules:
     - host: admin.poseidon.com
       tls: true   # default: true
@@ -44,6 +45,15 @@ ingress:
             type: exact
             service:
               name: rickroll
+
+# nginx:
+#  /var/lib/zeus/poseidon/network/ingress/nginx/conf.d/admin.poseidon.com/location
+
+bolt:
+  key: /api/v1.0/applications/poseidon/ingress/poseidon.com
+  value: .proto
+
+
 
 # things to consider (is local: false)
 #   0) verify the configuration

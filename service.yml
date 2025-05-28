@@ -7,7 +7,7 @@ service:
     ports:
       - name: application # poseidon.svc.poseidon.local:8080
         port: 8080
-      - name: prometheus # poseidon.svc.poseidon.local:5000
+      - name: prometheus # poseidon.svc.poseidon.local:5000 -> poseidon:application
         port: 5000
 
   secrets:

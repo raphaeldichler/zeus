@@ -1,23 +1,11 @@
 package main
 
-import (
-	"encoding/json"
-	"net"
-	"net/http"
-	"net/http/httputil"
-	"os"
-	"github.com/raphaeldichler/zeus/internal/filter"
-
-	"github.com/sirupsen/logrus"
-)
-
 const (
-  DefaultDockerSocketPath = "/var/run/docker.sock"
-  EnvDockerSocketPath = "DOCKER_SOCKET_PATH"
+	DefaultDockerSocketPath = "/var/run/docker.sock"
+	EnvDockerSocketPath     = "DOCKER_SOCKET_PATH"
 )
 
-
-
+/*
 type server struct {
   proxy *httputil.ReverseProxy
   listener net.Listener
@@ -36,7 +24,7 @@ func (self *server) interceptor(w http.ResponseWriter, r *http.Request) {
 
       json.NewEncoder(w).Encode(map[string]string{"message": msg})
       logrus.Infof("Blocked Request %s %s\n", r.Method, r.URL.Path)
-      return 
+      return
     }
 
     logrus.Infof("Forward Request %s %s\n", r.Method, r.URL.Path)
@@ -96,4 +84,4 @@ func main() {
   s.run()
 }
 
-
+*/
