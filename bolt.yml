@@ -28,7 +28,6 @@ tls:
   key: /api/v1.0/applications/poseidon/tls/poseidon.com
   storage: .proto
   example:
-    domain: poseidon.com
     state: obtain | renew
     expires: unix-time # 64bit only valid if in renew
     privkey: string

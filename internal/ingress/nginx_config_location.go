@@ -54,18 +54,12 @@ type LocationConfig struct {
 }
 
 func NewLocationConfig(
-	serverId ServerIdentifier,
-	path string,
-	matchingType LocationMatchingType,
+  locationID LocationIdentifier,
 	entries ...string,
 ) *LocationConfig {
 
 	return &LocationConfig{
-		LocationIdentifier: LocationIdentifier{
-			ServerIdentifier: serverId,
-			Path:             path,
-			Matching:         matchingType,
-		},
+		LocationIdentifier: locationID,
 		Entries: entries,
 	}
 }
