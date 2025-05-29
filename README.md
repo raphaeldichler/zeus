@@ -1,10 +1,15 @@
 # Zeus
+[![Go Report Card](https://goreportcard.com/badge/github.com/raphaeldichler/zeus)](https://goreportcard.com/report/github.com/raphaeldichler/zeus)
+
+----
 
 Zeus is an open-source system for managing containerized applications on a single host. It provides essential mechanisms for deploying and maintaining applications.
 
 Zeus offers an alternative to [Kubernetes (K8s)](https://kubernetes.io/) for smaller applications that do not require multi-host deployment for performance or stability. While some features of K8s are useful at any scale, others are unnecessary for simpler setups. Zeus aims to deliver the core benefits of K8s in an environment suitable for the majority of applications that do not need a full-blown cluster to serve users.
 
 Zeus provides a declarative way to define the desired state of your application, inspired by Kubernetes. Additionally, it encourages a development approach where applications are designed to run consistently across environments.
+
+----
 
 ## Why zeus?
 
