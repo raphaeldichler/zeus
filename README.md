@@ -29,4 +29,7 @@ Beyond monitoring, we also need a way to interact with the application externall
 
 In the end, we’ve gone from a single container to a small but complex setup involving multiple services, each of which must be configured, maintained, and deployed reliably in a production environment.
 
-![example](./docs/problem.png)
+<p align="center">
+  <img src="./docs/problem.png">
+</p>
+
