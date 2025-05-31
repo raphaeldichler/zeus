@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"testing"
 
 	"crypto/ecdsa"
@@ -188,12 +189,15 @@ func TestNginxControllerSetHttpLocation(t *testing.T) {
 	defer cleanup()
 
 	domain := "localhost"
-	serverId := ServerIdentifier{Domain: domain, TlsEnabled: false}
-	server := NewServerConfig(serverId, false)
+  serverId := ServerIdentifier{Domain: domain, TlsEnabled: false, IPv6: false}
+	server := NewServerConfig(serverId)
+	locationID := LocationIdentifier{
+		ServerIdentifier: serverId,
+		Path:             "/",
+		Matching:         LocationPrefix,
+	}
 	location := NewLocationConfig(
-		serverId,
-		"/",
-		LocationPrefix,
+		locationID,
 		"return 200 'foo'",
 		"add_header Content-Type text/plain",
 	)
@@ -225,14 +229,17 @@ func TestNginxControllerVerifyHttpsCertificate(t *testing.T) {
 	}
 	defer cleanup()
 
-	serverId := ServerIdentifier{Domain: domain, TlsEnabled: true}
+  serverId := ServerIdentifier{Domain: domain, TlsEnabled: true, IPv6: false}
 	certPEM, keyPEM := generateSelfSignedCert(domain)
 	cert := NewCertificate(domain, keyPEM, certPEM)
-	server := NewServerConfig(serverId, false)
+	server := NewServerConfig(serverId)
+	locationID := LocationIdentifier{
+		ServerIdentifier: serverId,
+		Path:             "/",
+		Matching:         LocationPrefix,
+	}
 	location := NewLocationConfig(
-		serverId,
-		"/",
-		LocationPrefix,
+		locationID,
 		"return 200 'foo'",
 		"add_header Content-Type text/plain",
 	)
@@ -263,14 +270,17 @@ func TestNginxControllerChangeCertificate(t *testing.T) {
 	}
 	defer cleanup()
 
-	serverId := ServerIdentifier{Domain: domain, TlsEnabled: true}
+  serverId := ServerIdentifier{Domain: domain, TlsEnabled: true, IPv6: false}
 	certPEM1, keyPEM1 := generateSelfSignedCert(domain)
 	cert := NewCertificate(domain, keyPEM1, certPEM1)
-	server := NewServerConfig(serverId, false)
+	server := NewServerConfig(serverId)
+	locationID := LocationIdentifier{
+		ServerIdentifier: serverId,
+		Path:             "/",
+		Matching:         LocationPrefix,
+	}
 	location := NewLocationConfig(
-		serverId,
-		"/",
-		LocationPrefix,
+		locationID,
 		"return 200 'foo'",
 		"add_header Content-Type text/plain",
 	)
@@ -328,12 +338,15 @@ func TestNginxControllerSetAndOverwrittingLocations(t *testing.T) {
 			}
 			defer cleanup()
 
-			serverId := ServerIdentifier{Domain: domain, TlsEnabled: tt.tlsEnabled}
-			server := NewServerConfig(serverId, false)
+      serverId := ServerIdentifier{Domain: domain, TlsEnabled: tt.tlsEnabled, IPv6: false}
+			server := NewServerConfig(serverId)
+			locationID1 := LocationIdentifier{
+				ServerIdentifier: serverId,
+				Path:             "/test-1",
+				Matching:         LocationPrefix,
+			}
 			location1 := NewLocationConfig(
-				serverId,
-				"/test-1",
-				LocationExact,
+				locationID1,
 				"return 200 'foo'",
 				"add_header Content-Type text/plain",
 			)
@@ -360,10 +373,13 @@ func TestNginxControllerSetAndOverwrittingLocations(t *testing.T) {
 			assertHttpOrHttpsOk(t, url1, "foo")
 
 			// add new location, old and new one should be reachable
+			locationID2 := LocationIdentifier{
+				ServerIdentifier: serverId,
+				Path:             "/test-2",
+				Matching:         LocationPrefix,
+			}
 			location2 := NewLocationConfig(
-				serverId,
-				"/test-2",
-				LocationExact,
+				locationID2,
 				"return 200 'bra'",
 				"add_header Content-Type text/plain",
 			)
@@ -379,10 +395,13 @@ func TestNginxControllerSetAndOverwrittingLocations(t *testing.T) {
 			assertHttpOrHttpsOk(t, url2, "bra")
 
 			// overwriting location
+			locationID3 := LocationIdentifier{
+				ServerIdentifier: serverId,
+				Path:             "/test-1",
+				Matching:         LocationPrefix,
+			}
 			location3 := NewLocationConfig(
-				serverId,
-				"/test-1",
-				LocationExact,
+				locationID3,
 				"return 200 'bra'",
 				"add_header Content-Type text/plain",
 			)
@@ -423,12 +442,15 @@ func TestNginxControllerUnsetLocation(t *testing.T) {
 			}
 			defer cleanup()
 
-			serverId := ServerIdentifier{Domain: domain, TlsEnabled: tt.tlsEnabled}
-			server := NewServerConfig(serverId, false)
-			location1 := NewLocationConfig(
-				serverId,
-				"/test-1",
-				LocationExact,
+      serverId := ServerIdentifier{Domain: domain, TlsEnabled: tt.tlsEnabled, IPv6: false}
+			server := NewServerConfig(serverId)
+			locationID := LocationIdentifier{
+				ServerIdentifier: serverId,
+				Path:             "/test-1",
+				Matching:         LocationPrefix,
+			}
+			location := NewLocationConfig(
+				locationID,
 				"return 200 'foo'",
 				"add_header Content-Type text/plain",
 			)
@@ -447,7 +469,7 @@ func TestNginxControllerUnsetLocation(t *testing.T) {
 
 			url := tt.urlPrefix + "/test-1"
 			assertHttpOrHttpsNotFound(t, url)
-			if err := controller.SetLocation(location1); err != nil {
+			if err := controller.SetLocation(location); err != nil {
 				t.Fatalf("failed to set location1, got %v", err)
 			}
 			if err := controller.ApplyConfig(); err != nil {
@@ -456,7 +478,7 @@ func TestNginxControllerUnsetLocation(t *testing.T) {
 
 			assertHttpOrHttpsOk(t, url, "foo")
 
-			if err := controller.UnsetLocation(&location1.LocationIdentifier); err != nil {
+			if err := controller.UnsetLocation(&location.LocationIdentifier); err != nil {
 				t.Fatalf("failed to set location1, got %v", err)
 			}
 			if err := controller.ApplyConfig(); err != nil {
@@ -487,12 +509,16 @@ func TestNginxControllerSetSubdomains(t *testing.T) {
 			defer cleanup()
 			domains := []string{"localhost", "app.localhost", "admin.localhost"}
 			for _, domain := range domains {
-				serverId := ServerIdentifier{Domain: domain, TlsEnabled: tt.tlsEnabled}
-				server := NewServerConfig(serverId, false)
+        serverId := ServerIdentifier{Domain: domain, TlsEnabled: tt.tlsEnabled, IPv6: false}
+				server := NewServerConfig(serverId)
+
+				locationID := LocationIdentifier{
+					ServerIdentifier: serverId,
+					Path:             "/test",
+					Matching:         LocationPrefix,
+				}
 				location := NewLocationConfig(
-					serverId,
-					"/test",
-					LocationExact,
+					locationID,
 					fmt.Sprintf("return 200 '%s'", domain),
 					"add_header Content-Type text/plain",
 				)
@@ -530,3 +556,58 @@ func TestNginxControllerSetSubdomains(t *testing.T) {
 		})
 	}
 }
+
+func TestNginxControllerFindObsoleteServers(t *testing.T) {
+	controller, cleanup, err := setupTestingNginxController(t)
+	if err != nil {
+		t.Fatalf("setup failed, got %q", err)
+	}
+	defer cleanup()
+
+	domains := []string {"localhost", "app.localhost", "admin.localhost", "www.localhost"}
+  serverIdMap := make(map[string]ServerIdentifier)
+
+  controller.Transaction(func (ctr *NginxController) error {
+    for _, domain := range domains {
+      serverId := ServerIdentifier{Domain: domain, TlsEnabled: false, IPv6: false}
+      serverIdMap[domain] = serverId
+
+      server := NewServerConfig(serverId)
+      locationID := LocationIdentifier{
+        ServerIdentifier: serverId,
+        Path:             "/",
+        Matching:         LocationPrefix,
+      }
+      location := NewLocationConfig(
+        locationID,
+        fmt.Sprintf("return 200 '%s'", domain),
+        "add_header Content-Type text/plain",
+      )
+      if err := ctr.SetHTTPServer(server); err != nil {
+        t.Fatalf("failed to set server, got %v", err)
+      }
+      if err := ctr.SetLocation(location); err != nil {
+        t.Fatalf("failed to set location, got %v", err)
+      }
+    }
+
+    return nil
+  })
+
+  obsolete := controller.FindObsoleteServers([]ServerIdentifier{})
+  for _, domain := range domains {
+    if !slices.Contains(obsolete, serverIdMap[domain]) {
+      t.Fatalf("failed to find obsolete server correctly. expected '%v' be in '%v'", serverIdMap[domain], obsolete)
+    }
+  }
+
+  shouldStay := []ServerIdentifier{ serverIdMap[domains[0]], serverIdMap[domains[1]] } 
+  obsolete = controller.FindObsoleteServers(shouldStay)
+  if !slices.Contains(obsolete, serverIdMap[domains[2]]) {
+    t.Fatalf("failed to find obsolete server correctly. expected '%v' be in '%v'", serverIdMap[domains[2]], obsolete)
+  }
+  if !slices.Contains(obsolete, serverIdMap[domains[3]]) {
+    t.Fatalf("failed to find obsolete server correctly. expected '%v' be in '%v'", serverIdMap[domains[3]], obsolete)
+  }
+}
+

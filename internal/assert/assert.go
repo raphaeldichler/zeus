@@ -16,6 +16,16 @@ func EndsNotWith(str string, suffix rune, msg string) {
 	}
 }
 
+// EndsNotWith asserts that the string `str` does NOT end with the given rune `suffix`.
+// If it does, the function panics with the provided `msg`.
+func EndsWith(str string, suffix string, msg string) {
+  if !strings.HasSuffix(str, suffix) {
+		panic(msg)
+  }
+}
+
+
+
 // IsAsciiString asserts that the string `s` contains only ASCII characters (code <= 127).
 // If a non-ASCII character is found, the function panics with the provided `msg`.
 func IsAsciiString(s string, msg string) {

@@ -5,6 +5,7 @@ package ingress
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
@@ -17,15 +18,21 @@ const (
 type ServerIdentifier struct {
 	Domain     string
 	TlsEnabled bool
+	IPv6    bool
 }
 
 func (self *ServerIdentifier) serverId() string {
-	port := "80"
+  port := "#80"
 	if self.TlsEnabled {
-		port = "443"
+		port = "#443"
 	}
 
-	return self.Domain + "#" + port
+  ip := "#ipv4"
+  if self.IPv6 {
+    ip = "#ipv6"
+  }
+
+	return self.Domain + port + ip
 }
 
 func (self *ServerIdentifier) FilePath() string {
@@ -45,20 +52,57 @@ func (self *ServerIdentifier) LocationDirectory() string {
 type ServerConfig struct {
 	ServerIdentifier
 
-	Ipv6    bool
 	Entries []string
 }
 
+func ServerIdentifierFromPath(path string) (ServerIdentifier, bool) {
+  _, file := filepath.Split(path)
+  assert.EndsWith(file, ".conf", "we only parse paths which include .conf")
+  file = file[:len(file) - len(".conf")]
+
+  return parseServerIdentifierString(file)
+}
+
+func parseServerIdentifierString(serverID string) (ServerIdentifier, bool) {
+  parts := strings.Split(serverID, "#")
+  if len(parts) != 3 {
+    return ServerIdentifier{}, false
+  }
+
+  portPart := parts[1]
+  if ok := portPart == "443" || portPart == "80"; !ok {
+    return ServerIdentifier{}, false
+  }
+  tlsEnabled := portPart == "443"
+
+  ipPart := parts[2]
+  if ok := ipPart == "ipv4" || ipPart == "ipv6"; !ok {
+    return ServerIdentifier{}, false
+  }
+  ipv6Enabled := ipPart == "ipv6"
+
+  return ServerIdentifier {
+    Domain: parts[0],
+    TlsEnabled: tlsEnabled,
+    IPv6: ipv6Enabled,
+  }, true
+}
+
+
+
 func NewServerConfig(
 	serverId ServerIdentifier,
-	ipv6Enabled bool,
 	entries ...string,
 ) *ServerConfig {
 	return &ServerConfig{
 		ServerIdentifier: serverId,
-		Ipv6:             ipv6Enabled,
 		Entries:          entries,
 	}
+}
+
+func (self *ServerConfig) Equal(other *ServerConfig) bool {
+
+  return true
 }
 
 func (self *ServerConfig) FileContent() []byte {
@@ -77,7 +121,7 @@ func (self *ServerConfig) FileContent() []byte {
 	}
 
 	w.writeln(listenIpv4)
-	if self.Ipv6 {
+	if self.IPv6 {
 		w.writeln(listenIpv6)
 	}
 	w.writeln(additionHttp2)

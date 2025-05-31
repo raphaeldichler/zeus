@@ -6,6 +6,7 @@ package ingress
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/raphaeldichler/zeus/internal/log"
@@ -14,7 +15,7 @@ import (
 
 type NginxController struct {
 	container *runtime.Container
-	cache     NginxCache
+	cache     *NginxCache
 
 	log *log.Logger
 }
@@ -32,6 +33,28 @@ func NewNginxController(
 	}
 }
 
+func (self *NginxController) FindObsoleteServers(servers []ServerIdentifier) []ServerIdentifier {
+  result := make([]ServerIdentifier, 0)
+  for _, serverID := range self.cache.serverKeys() {
+    if !slices.Contains(servers, serverID) {
+      result = append(result, serverID)
+    }
+  }
+
+  return result
+}
+
+func (self *NginxController) FindObsoleteLocations(servers []LocationIdentifier) []LocationIdentifier {
+  result := make([]LocationIdentifier, 0)
+  for _, locationID := range self.cache.locationKeys() {
+    if !slices.Contains(servers, locationID) {
+      result = append(result, locationID)
+    }
+  }
+
+  return result
+}
+
 func (self *NginxController) SetAcmeChallengeLocation(
 	domain string,
 	token string,
@@ -44,6 +67,7 @@ func (self *NginxController) SetAcmeChallengeLocation(
 			ServerIdentifier: ServerIdentifier{
 				Domain:     domain,
 				TlsEnabled: false,
+        IPv6: false,
 			},
 			Path:     filepath.Join("/.well-known/acme-challenge/", token),
 			Matching: LocationExact,
@@ -62,7 +86,7 @@ func (self *NginxController) SetLocation(
 		return err
 	}
 
-	if self.cache.isCached(location) {
+	if self.cache.isLocationCached(location) {
 		return nil
 	}
 
@@ -158,7 +182,6 @@ func (self *NginxController) SetCertificate(
 	}
 
 	if err := self.container.EnsurePathExists(certificate.DirectoryPath()); err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -183,7 +206,30 @@ func (self *NginxController) SetCertificate(
 
 func (self *NginxController) ApplyConfig() error {
 	err := self.container.Sighup()
+  if err != nil {
+	  return err
+  }
 	// todo: just a hack for the moment, add a verificiation step to ensure is applied
 	time.Sleep(time.Second)
-	return err
+	return nil
+}
+
+func (self *NginxController) Transaction(tx func(*NginxController) error) error {
+  return self.cache.transaction(func(c *NginxCache) error {
+		ctr := NginxController{
+			container: self.container,
+			cache:     c,
+			log:       self.log,
+		}
+
+    if err := tx(&ctr); err != nil {
+      return err
+    }
+
+    if err := ctr.ApplyConfig(); err != nil {
+      return err
+    }
+
+    return nil
+	})
 }

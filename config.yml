@@ -1,8 +1,0 @@
-application: poseidon
-ip: 8.8.8.8
-ssh:
-  user: bob
-  cert: |
-    -----BEGIN OPENSSH PRIVATE KEY-----
-    ...
-    -----END OPENSSH PRIVATE KEY-----

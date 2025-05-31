@@ -89,7 +89,7 @@ func ObtainCertificate(
 	err = client.Challenge.SetHTTP01Provider(&NginxHttp01Provider{controller: controller})
 	assert.ErrNil(err)
 
-  _, err = client.Certificate.Obtain(certificate.ObtainRequest{
+	_, err = client.Certificate.Obtain(certificate.ObtainRequest{
 		Domains: domains,
 		Bundle:  true,
 	})
@@ -102,4 +102,3 @@ func ObtainCertificate(
 
 	return nil
 }
-

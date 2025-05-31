@@ -4,50 +4,95 @@
 package ingress
 
 import (
-	"bytes"
-	"strings"
+	"maps"
+	"slices"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
-type CacheEntry interface {
-	FilePath() string
-	FileContent() []byte
-}
-
+// NginxCache provides a simple in-memory cache for file contents, keyed by file path.
 type NginxCache struct {
-	cache map[string][]byte
+  locationCache map[LocationIdentifier]LocationConfig
+  serverCache map[ServerIdentifier]ServerConfig
 }
 
-func NewNginxCache() NginxCache {
-	return NginxCache{
-		cache: make(map[string][]byte),
+// NewNginxCache initializes and returns a new, empty NginxCache.
+func NewNginxCache() *NginxCache {
+	return &NginxCache{
+    locationCache: make(map[LocationIdentifier]LocationConfig),
+    serverCache: make(map[ServerIdentifier]ServerConfig),
 	}
 }
 
-func (self *NginxCache) isCached(enty CacheEntry) bool {
-	i, ok := self.cache[enty.FilePath()]
-	if !ok {
-		return false
+func (self *NginxCache) isLocationCached(requestCfg *LocationConfig) bool {
+  cfg, ok := self.locationCache[requestCfg.LocationIdentifier]
+  if !ok {
+    return false
+  }
+
+  return requestCfg.Equal(&cfg) 
+}
+
+func (self *NginxCache) isLocationIdentifierCached(locationID LocationIdentifier) bool {
+  _, ok := self.locationCache[locationID]
+  return ok
+}
+
+func (self *NginxCache) setLocation(requestCfg *LocationConfig) {
+  self.locationCache[requestCfg.LocationIdentifier] = *requestCfg
+}
+
+func (self *NginxCache) unsetLocation(locationID LocationIdentifier) {
+	delete(self.locationCache, locationID)
+}
+
+func (self *NginxCache) locationKeys() []LocationIdentifier {
+  return slices.Collect(maps.Keys(self.locationCache))
+}
+
+func (self *NginxCache) isServerCached(requestCfg *ServerConfig) bool {
+  cfg, ok := self.serverCache[requestCfg.ServerIdentifier]
+  if !ok {
+    return false
+  }
+
+  return requestCfg.Equal(&cfg) 
+}
+
+func (self *NginxCache) isServerIdentifierCached(serverID ServerIdentifier) bool {
+  _, ok := self.serverCache[serverID]
+  return ok
+}
+
+func (self *NginxCache) setServer(cfg *ServerConfig) {
+  _, ok := self.serverCache[cfg.ServerIdentifier] 
+  assert.False(ok, "overwriting is not allowed")
+  self.serverCache[cfg.ServerIdentifier] = *cfg
+}
+
+func (self *NginxCache) unsetServer(locationID ServerIdentifier) {
+	delete(self.serverCache, locationID)
+}
+
+func (self *NginxCache) serverKeys() []ServerIdentifier {
+  return slices.Collect(maps.Keys(self.serverCache))
+}
+
+// transaction executes a set of cache operations atomically.
+// A copy of the current cache state is passed to the transaction function.
+// If the function returns an error, all changes are discarded.
+// If the function returns nil, the changes are committed to the main cache.
+func (self *NginxCache) transaction(tx func(*NginxCache) error) error {
+	transactionCache := &NginxCache{
+    locationCache: maps.Clone(self.locationCache),
+    serverCache: maps.Clone(self.serverCache),
 	}
 
-	return bytes.Compare(enty.FileContent(), i) == 0
-}
+	if err := tx(transactionCache); err != nil {
+		return err
+	}
 
-func (self *NginxCache) isKeyCached(path string) bool {
-	_, ok := self.cache[path]
-	return ok
-}
-
-func (self *NginxCache) set(entry CacheEntry) {
-	content := bytes.Clone(entry.FileContent())
-	assert.NotNil(content, "cannot cache nil")
-
-	key := strings.Clone(entry.FilePath())
-
-	self.cache[key] = content
-}
-
-func (self *NginxCache) unset(path string) {
-	delete(self.cache, path)
+  self.locationCache = transactionCache.locationCache
+  self.serverCache = transactionCache.serverCache
+	return nil
 }

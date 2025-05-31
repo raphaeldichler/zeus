@@ -6,6 +6,7 @@ package ingress
 import (
 	"encoding/base64"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
@@ -53,14 +54,22 @@ type LocationConfig struct {
 	Entries []string
 }
 
+func (self *LocationConfig) Equal(other *LocationConfig) bool {
+  if self.LocationIdentifier != other.LocationIdentifier {
+    return false
+  }
+
+  return slices.Equal(self.Entries, other.Entries)
+}
+
 func NewLocationConfig(
-  locationID LocationIdentifier,
+	locationID LocationIdentifier,
 	entries ...string,
 ) *LocationConfig {
 
 	return &LocationConfig{
 		LocationIdentifier: locationID,
-		Entries: entries,
+		Entries:            entries,
 	}
 }
 
