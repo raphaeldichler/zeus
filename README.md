@@ -24,7 +24,7 @@ Zeus was born from the observation that many applications face similar requireme
 
 ### The Problem We’re Solving
 
-Let’s consider a scenario involving a monolithic application—often the simplest and least error-prone architectural approach. Initially, deploying a single container may seem sufficient. However, as the application evolves, we may want to observe its behavior and detect problems as early as possible.
+Let’s consider a scenario involving a monolithic application - often the simplest and least error-prone architectural approach. Initially, deploying a single container may seem sufficient. However, as the application evolves, we may want to observe its behavior and detect problems as early as possible.
 
 One option could be integrating custom observability features directly into the monolith, but this quickly becomes overkill. A more practical solution is to run a [Grafana](https://grafana.com/) container alongside the application to visualize metrics. To feed data into Grafana, we also need a [Prometheus](https://prometheus.io/) container to collect metrics from the application.
 
