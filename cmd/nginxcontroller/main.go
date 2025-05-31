@@ -4,7 +4,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -12,20 +11,14 @@ import (
 )
 
 func main() {
-  nginxPath := flag.String("nginx-path", "", "Path to the nginx executable")
-	flag.Parse()
-
-  if *nginxPath == "" {
-    flag.Usage()
-		os.Exit(1)
-  }
-  
-  ctr, err := nginxcontroller.NewServer(*nginxPath)
+  server, err := nginxcontroller.NewServer()
   if err != nil {
-    fmt.Fprintf(os.Stderr, "")
+    fmt.Fprintf(os.Stderr, "Failed to initialize the server, got '%s'", err.Error())
 		os.Exit(1)
   }
 
-	fmt.Println("Nginx path:", *nginxPath)
-  fmt.Println("Hello World")
+  if err := server.Run(); err != nil {
+    fmt.Fprintf(os.Stderr, "Failed run server, got '%s'", err.Error())
+		os.Exit(1)
+  }
 }

@@ -3,6 +3,7 @@
 
 package nginxcontroller
 
+
 type MatchingType int
 const (
   PrefixMatching MatchingType = iota
@@ -33,6 +34,62 @@ func (self *NginxConfig) AddServerConfig(s *ServerConfig) {
   self.Servers = append(self.Servers, s)
 }
 
+func (self *NginxConfig) GetHttpServerConfig(
+  domain string,
+) *ServerConfig {
+  var result *ServerConfig = nil
+  for _, server := range self.Servers {
+    if server.Domain == domain && server.Tls == nil {
+      result = server
+      break
+    }
+  }
+
+  return result
+}
+
+func (self *NginxConfig) GetOrCreateHttpServerConfig(
+  domain string,
+) *ServerConfig {
+  result := self.GetHttpServerConfig(domain)
+  if result == nil {
+    result = &ServerConfig {
+      Domain: domain,
+      Tls: nil,
+      IPv6: false,
+      Locations: make([]*LocationsConfig, 0),
+    }
+  }
+
+  return result
+}
+
+func (self *NginxConfig) DeleteHttpLocation(
+  domain string,
+  path string,
+  matching MatchingType,
+) bool {
+  server := self.GetHttpServerConfig(domain)
+  for idx, loc := range server.Locations {
+    if loc.Path == path && loc.Matching == matching {
+      server.Locations[idx] = server.Locations[len(server.Locations) - 1]
+      server.Locations = server.Locations[:len(server.Locations) - 1]
+
+      return true
+    }
+  }
+
+  return false
+}
+
+func (self *NginxConfig) ExistServerConfig(
+  domain string,
+) bool {
+  server := self.GetHttpServerConfig(domain)
+
+  return server != nil
+}
+
 type TlsCertificate struct {
   FullchainFilePath string
   PrivkeyFilePath string
@@ -47,7 +104,7 @@ type ServerConfig struct {
 	Domain string 
   Tls *TlsCertificate
 	IPv6 bool 
-  Locations []LocationsConfig 
+  Locations []*LocationsConfig 
 }
 
 func NewServerConfig(
@@ -59,11 +116,11 @@ func NewServerConfig(
     Domain: domain,
     Tls: tls,
     IPv6: ipv6Enabled,
-    Locations: make([]LocationsConfig, 0),
+    Locations: make([]*LocationsConfig, 0),
   }
 }
 
-func (self *ServerConfig) AddLocation(l LocationsConfig) {
+func (self *ServerConfig) AddLocation(l *LocationsConfig) {
   self.Locations = append(self.Locations, l)
 }
 
@@ -107,8 +164,21 @@ func (self *ServerConfig) write(w *ConfigBuilder) {
 type LocationsConfig struct {
 	Path string
 	Matching MatchingType
-  ServiceEndpoint string
+  Entries []string
 }
+
+func NewLocationConfig(
+  path string,
+  matching MatchingType,
+  entries ...string,
+) *LocationsConfig {
+  return &LocationsConfig{
+    Path: path,
+    Matching: matching,
+    Entries: entries,
+  }
+}
+
 
 func (self *LocationsConfig) write(w *ConfigBuilder) {
   prefix := "location "

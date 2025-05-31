@@ -6,7 +6,7 @@ package nginxcontroller
 import (
 	"net"
 	"net/http"
-	"syscall"
+	"os/exec"
 )
 
 const (
@@ -15,12 +15,16 @@ const (
 
 type Controller struct {
   listen net.Listener
-  nginxPath string
+  nginx string
+  config *NginxConfig
 }
 
-func NewServer(
-  nginxPath string,
-) (*Controller, error) {
+func NewServer() (*Controller, error) {
+  nginx, err := exec.LookPath("nginx")
+  if err != nil {
+    return nil, err
+  }
+
   listen, err := net.Listen("unix", SocketPath)
   if err != nil {
     return nil, err
@@ -28,7 +32,8 @@ func NewServer(
 
   return &Controller{
     listen: listen,
-    nginxPath: nginxPath,
+    nginx: nginx,
+    config: NewNginxConfig(),
   }, nil
 }
 
@@ -42,14 +47,6 @@ func (self *Controller) Run() error {
 }
 
 func (self *Controller) ReloadNginxConfig(configPath string) error {
-
-  return syscall.Kill(1, syscall.SIGHUP)
+  cmd := exec.Command(self.nginx, "-s", "reload", "-c", configPath)
+  return cmd.Run()
 }
-
-func (self *Controller) Acme(w http.ResponseWriter, r *http.Request) {
-
-}
-
-
-
-
