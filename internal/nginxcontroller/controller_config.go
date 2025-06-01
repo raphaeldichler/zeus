@@ -5,6 +5,7 @@ package nginxcontroller
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
@@ -22,10 +23,11 @@ type ApplyRequest struct {
 }
 
 type ServerRequest struct {
-	Domain      string              `json:"domain"`
-	Certificate *CertificateRequest `json:"certificate"`
-	Locations   []LocationRequest   `json:"locations"`
-	IPv6Enabled bool                `json:"ipv6Enabled"`
+	Domain       string              `json:"domain"`
+	Certificate  *CertificateRequest `json:"certificate"`
+	Locations    []LocationRequest   `json:"locations"`
+	IPv6Enabled  bool                `json:"ipv6Enabled"`
+	DefaultSever bool                `json:"defaultServer"`
 }
 
 type LocationRequest struct {
@@ -63,7 +65,7 @@ func (self *CertificateRequest) ToCertificate() *TlsCertificate {
 func (self *Controller) Apply(
 	w http.ResponseWriter,
 	r *http.Request,
-	req *ApplyRequest,
+	command *ApplyRequest,
 ) {
 	d, err := openDirectory()
 	if err != nil {
@@ -73,7 +75,7 @@ func (self *Controller) Apply(
 	defer d.close()
 	cfg := NewNginxConfig()
 
-	for _, server := range req.Servers {
+	for _, server := range command.Servers {
 		var tls *TlsCertificate = nil
 		if cert := server.Certificate; cert != nil {
 			tls = cert.ToCertificate()
@@ -83,6 +85,7 @@ func (self *Controller) Apply(
 			server.Domain,
 			server.IPv6Enabled,
 			tls,
+			server.DefaultSever,
 		)
 		for _, loc := range server.Locations {
 			m, ok := matching[loc.Matching]
@@ -91,11 +94,15 @@ func (self *Controller) Apply(
 			lc := NewLocationConfig(
 				loc.Path,
 				m,
-				"proxy_pass "+loc.ServiceEndpoint,
-				"proxy_set_header Host $host",
-				"proxy_set_header X-Real-IP $remote_addr",
-				"proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for",
-				"proxy_set_header X-Forwarded-Proto $scheme",
+				fmt.Sprintf(`return 200 "%s@%s"`, server.Domain, loc.Path),
+				"add_header Content-Type text/plain",
+				/*
+					"proxy_pass "+loc.ServiceEndpoint,
+					"proxy_set_header Host $host",
+					"proxy_set_header X-Real-IP $remote_addr",
+					"proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for",
+					"proxy_set_header X-Forwarded-Proto $scheme",
+				*/
 			)
 
 			sc.SetLocation(lc)

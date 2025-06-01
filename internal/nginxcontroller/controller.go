@@ -13,8 +13,8 @@ import (
 )
 
 const (
-  NginxConfigPath = "/etc/nginx/nginx.conf"
-	SocketPath string = "/run/zeus/nginx.sock"
+	NginxConfigPath = "/etc/nginx/nginx.conf"
+	SocketPath      = "/run/zeus/nginx.sock"
 )
 
 type Controller struct {
@@ -56,7 +56,7 @@ func NewServer() (*Controller, error) {
 }
 
 func (self *Controller) SetConfig(cfg *NginxConfig) {
-  self.config = cfg
+	self.config = cfg
 }
 
 func (self *Controller) Run() error {

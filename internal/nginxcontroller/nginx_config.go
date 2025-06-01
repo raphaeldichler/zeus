@@ -44,6 +44,60 @@ func NewNginxConfig() *NginxConfig {
 	}
 }
 
+func (self *NginxConfig) SetServerConfig(s *ServerConfig) {
+	self.Servers = append(self.Servers, s)
+}
+
+func (self *NginxConfig) GetHttpServerConfig(
+	domain string,
+) *ServerConfig {
+	for _, server := range self.Servers {
+		if server.Domain == domain && server.Tls == nil {
+			return server
+		}
+	}
+
+	return nil
+}
+
+func (self *NginxConfig) SetHttpLocation(
+	domain string,
+	loc *LocationsConfig,
+) {
+	server := self.GetOrCreateHttpServerConfig(domain)
+	assert.NotNil(server, "a server must exists")
+
+	server.SetLocation(loc)
+}
+
+func (self *NginxConfig) GetOrCreateHttpServerConfig(
+	domain string,
+) *ServerConfig {
+	server := self.GetHttpServerConfig(domain)
+	if server == nil {
+		server = NewServerConfig(domain, false, nil, false)
+		self.Servers = append(self.Servers, server)
+	}
+
+	return server
+}
+
+func (self *NginxConfig) DeleteHttpLocation(
+	domain string,
+	path string,
+	matching MatchingType,
+) *LocationsConfig {
+	server := self.GetHttpServerConfig(domain)
+	if server == nil {
+		return nil
+	}
+
+	return server.RemoveLocation(&LocationsConfig{
+		Path:     path,
+		Matching: matching,
+	})
+}
+
 func (self *NginxConfig) Store(d directory) error {
 	w := NewConfigBuilder()
 
@@ -92,66 +146,6 @@ func (self *NginxConfig) Store(d directory) error {
 	return nil
 }
 
-func (self *NginxConfig) SetServerConfig(s *ServerConfig) {
-	self.Servers = append(self.Servers, s)
-}
-
-func (self *NginxConfig) GetHttpServerConfig(
-	domain string,
-) *ServerConfig {
-	for _, server := range self.Servers {
-		if server.Domain == domain && server.Tls == nil {
-			return server
-		}
-	}
-
-	return nil
-}
-
-func (self *NginxConfig) SetHttpLocation(
-	domain string,
-	loc *LocationsConfig,
-) {
-	server := self.GetOrCreateHttpServerConfig(domain)
-	server.SetLocation(loc)
-}
-
-func (self *NginxConfig) GetOrCreateHttpServerConfig(
-	domain string,
-) *ServerConfig {
-	server := self.GetHttpServerConfig(domain)
-	if server == nil {
-		server = &ServerConfig{
-			Domain:    domain,
-			Tls:       nil,
-			IPv6:      false,
-			Locations: make([]*LocationsConfig, 0),
-		}
-		self.Servers = append(self.Servers, server)
-	}
-
-	return server
-}
-
-func (self *NginxConfig) DeleteHttpLocation(
-	domain string,
-	path string,
-	matching MatchingType,
-) *LocationsConfig {
-	server := self.GetHttpServerConfig(domain)
-	for idx, loc := range server.Locations {
-		if loc.Path == path && loc.Matching == matching {
-			loc := server.Locations[idx]
-			server.Locations[idx] = server.Locations[len(server.Locations)-1]
-			server.Locations = server.Locations[:len(server.Locations)-1]
-
-			return loc
-		}
-	}
-
-	return nil
-}
-
 type TlsCertificate struct {
 	FullchainFilePath string
 	PrivkeyFilePath   string
@@ -179,108 +173,4 @@ func (self *TlsCertificate) store(d directory) error {
 	self.PrivkeyFilePath = privkeyPath
 
 	return nil
-}
-
-type ServerConfig struct {
-	Domain    string
-	Tls       *TlsCertificate
-	IPv6      bool
-	Locations []*LocationsConfig
-}
-
-func NewServerConfig(
-	domain string,
-	ipv6Enabled bool,
-	tls *TlsCertificate,
-) *ServerConfig {
-	return &ServerConfig{
-		Domain:    domain,
-		Tls:       tls,
-		IPv6:      ipv6Enabled,
-		Locations: make([]*LocationsConfig, 0),
-	}
-}
-
-func (self *ServerConfig) SetLocation(l *LocationsConfig) {
-	for idx, e := range self.Locations {
-		if e.Path == l.Path && e.Matching == l.Matching {
-			self.Locations[idx] = self.Locations[len(self.Locations)-1]
-			self.Locations = self.Locations[:len(self.Locations)-1]
-			break
-		}
-	}
-
-	self.Locations = append(self.Locations, l)
-}
-
-func (self *ServerConfig) IsTlsEnabled() bool {
-	return self.Tls != nil
-}
-
-func (self *ServerConfig) write(w *ConfigBuilder) {
-	w.writeln("server {")
-	w.intend()
-
-	listenIpv4 := "listen 80;"
-	listenIpv6 := "listen [::]:80;"
-	additionHttp2 := ""
-	if self.IsTlsEnabled() {
-		listenIpv4 = "listen 443 ssl;"
-		listenIpv6 = "listen [::]:443 ssl;"
-		additionHttp2 = "http2 on;"
-	}
-
-	w.writeln(listenIpv4)
-	if self.IPv6 {
-		w.writeln(listenIpv6)
-	}
-	w.writeln(additionHttp2)
-
-	w.writeln("server_name ", self.Domain, ";")
-
-	if self.IsTlsEnabled() {
-		self.Tls.write(w)
-	}
-
-	for _, loc := range self.Locations {
-		loc.write(w)
-	}
-
-	w.unintend()
-	w.writeln("}")
-}
-
-type LocationsConfig struct {
-	Path     string
-	Matching MatchingType
-	Entries  []string
-}
-
-func NewLocationConfig(
-	path string,
-	matching MatchingType,
-	entries ...string,
-) *LocationsConfig {
-	return &LocationsConfig{
-		Path:     path,
-		Matching: matching,
-		Entries:  entries,
-	}
-}
-
-func (self *LocationsConfig) write(w *ConfigBuilder) {
-	prefix := "location "
-	if self.Matching == ExactMatching {
-		prefix = "location = "
-	}
-	w.writeln(prefix, self.Path, " {")
-	w.intend()
-
-	for _, e := range self.Entries {
-		assert.EndsNotWith(e, ';', "cannot end with ';' already appended")
-		w.writeln(e, ";")
-	}
-
-	w.unintend()
-	w.writeln("}")
 }

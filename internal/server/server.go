@@ -9,7 +9,7 @@ import (
 )
 
 type HttpServer struct {
-  Config *ServerConfig
+	Config   *ServerConfig
 	Listener net.Listener
 }
 
@@ -22,15 +22,15 @@ func New(
 	}
 
 	return &HttpServer{
-    Config: cfg,
+		Config:   cfg,
 		Listener: cfg.Listener,
 	}
 }
 
 func (self *HttpServer) Run() error {
 	mux := http.NewServeMux()
-  self.Config.setupControllers(mux)
+	self.Config.setupControllers(mux)
 
-  defer self.Listener.Close()
+	defer self.Listener.Close()
 	return http.Serve(self.Listener, mux)
 }

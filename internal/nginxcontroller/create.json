@@ -1,0 +1,45 @@
+{
+  "servers": [
+    {
+      "ipv6Enabled": true,
+      "defaultServer": true,
+      "certificate": {
+        "privkeyPem": "",
+        "fullchainPem": "",
+      },
+      "return": 444,
+    },
+    {
+      "domain": "localhost",
+      "ipv6Enabled": false,
+      "locations":  [
+        {
+          "path": "/foo",
+          "matching": "prefix",
+          "serviceEndpoint": "google.com",
+        }
+        {
+          "path": "/bra",
+          "matching": "prefix",
+          "serviceEndpoint": "google.com",
+        }
+      ]
+    },
+    {
+      "domain": "app.localhost",
+      "ipv6Enabled": false,
+      "locations":  [
+        {
+          "path": "/foo@app",
+          "matching": "prefix",
+          "serviceEndpoint": "google.com",
+        }
+        {
+          "path": "/bra@app",
+          "matching": "prefix",
+          "serviceEndpoint": "google.com",
+        }
+      ]
+    }
+  ]
+}

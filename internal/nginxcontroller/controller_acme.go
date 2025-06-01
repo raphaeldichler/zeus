@@ -29,9 +29,9 @@ func (self AcmeCreateRequest) Validate(
 	w http.ResponseWriter,
 	r *http.Request,
 ) bool {
-  if !IsValidDomain(self.Domain) {
-    return false
-  }
+	if !IsValidDomain(self.Domain) {
+		return false
+	}
 
 	return true
 }
@@ -45,9 +45,9 @@ func (self AcmeDeleteRequest) Validate(
 	w http.ResponseWriter,
 	r *http.Request,
 ) bool {
-  if !IsValidDomain(self.Domain) {
-    return false
-  }
+	if !IsValidDomain(self.Domain) {
+		return false
+	}
 
 	return true
 }
@@ -68,11 +68,7 @@ func (self *Controller) DeleteAcme(
 	}
 	defer d.close()
 
-	loc := self.config.DeleteHttpLocation(
-		command.Domain,
-		acmeLocationPath(command.Token),
-		ExactMatching,
-	)
+	loc := self.config.DeleteHttpLocation(command.Domain, acmeLocationPath(command.Token), ExactMatching)
 	if loc == nil {
 		replyBadRequest(w, &ErrorResponse{
 			ErrorType:    "invalid-delete-location",
@@ -101,15 +97,15 @@ func (self *Controller) SetAcme(
 	}
 	defer d.close()
 
-  self.config.SetHttpLocation(
-    command.Domain,
-    NewLocationConfig(
-      acmeLocationPath(command.Token),
-      ExactMatching,
-      fmt.Sprintf(`return 200 "%s"`, command.KeyAuth),
-      "add_header Content-Type text/plain",
-    ),
-  )
+	self.config.SetHttpLocation(
+		command.Domain,
+		NewLocationConfig(
+			acmeLocationPath(command.Token),
+			ExactMatching,
+			fmt.Sprintf(`return 200 "%s"`, command.KeyAuth),
+			"add_header Content-Type text/plain",
+		),
+	)
 
 	if err := self.StoreAndApplyConfig(w, self.config, d); err != nil {
 		return

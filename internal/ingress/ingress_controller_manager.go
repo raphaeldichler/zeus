@@ -69,53 +69,53 @@ func (self *IngressControllerManager) Sync(state *IngressState) error {
 	// checking if the current nginx controller has ipv6 enabled or disabled? we dont need to. the controller knows it
 	// if set the controller will not apply any state change
 
-  return controller.Transaction(func (ctr *NginxController) error {
+	return controller.Transaction(func(ctr *NginxController) error {
 
-    for _, rule := range state.Rules {
-      tlsEnabled := rule.Tls != nil
-      serverID := ServerIdentifier{
-        Domain:     rule.Host,
-        TlsEnabled: tlsEnabled,
-      }
+		for _, rule := range state.Rules {
+			tlsEnabled := rule.Tls != nil
+			serverID := ServerIdentifier{
+				Domain:     rule.Host,
+				TlsEnabled: tlsEnabled,
+			}
 
-      if tlsEnabled {
-        // if tls is enabled we need to obtain or renew (or do nothing) a new certificates.
-        // if we set and apply a server without setting it. we have an invalid state, which fails the server
-      }
+			if tlsEnabled {
+				// if tls is enabled we need to obtain or renew (or do nothing) a new certificates.
+				// if we set and apply a server without setting it. we have an invalid state, which fails the server
+			}
 
-      serverConfig := NewServerConfig(
-        serverID,
-      )
-      if err := controller.SetHTTPServer(serverConfig); err != nil {
-        // problem: what do we do if we have parital setted state. which was not applied?
-        // the controller think they are applied, but they are not ...
-        // -> we need to handle parital setted cache
-        return err
-      }
+			serverConfig := NewServerConfig(
+				serverID,
+			)
+			if err := controller.SetHTTPServer(serverConfig); err != nil {
+				// problem: what do we do if we have parital setted state. which was not applied?
+				// the controller think they are applied, but they are not ...
+				// -> we need to handle parital setted cache
+				return err
+			}
 
-      for _, path := range rule.Paths {
-        locationID := LocationIdentifier{
-          ServerIdentifier: serverID,
-          Path:             path.Path,
-          Matching:         path.Matching,
-        }
+			for _, path := range rule.Paths {
+				locationID := LocationIdentifier{
+					ServerIdentifier: serverID,
+					Path:             path.Path,
+					Matching:         path.Matching,
+				}
 
-        locationConfig := NewLocationConfig(
-          locationID,
-          "proxy_pass "+path.ServiceEndpoint,
-          "proxy_set_header Host $host",
-          "proxy_set_header X-Real-IP $remote_addr",
-          "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for",
-          "proxy_set_header X-Forwarded-Proto $scheme",
-        )
-        if err := controller.SetLocation(locationConfig); err != nil {
-          return err
-        }
-      }
-    }
+				locationConfig := NewLocationConfig(
+					locationID,
+					"proxy_pass "+path.ServiceEndpoint,
+					"proxy_set_header Host $host",
+					"proxy_set_header X-Real-IP $remote_addr",
+					"proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for",
+					"proxy_set_header X-Forwarded-Proto $scheme",
+				)
+				if err := controller.SetLocation(locationConfig); err != nil {
+					return err
+				}
+			}
+		}
 
-    return nil
-  })
+		return nil
+	})
 }
 
 // todo: writes the response directly into the request.
