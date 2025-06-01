@@ -5,120 +5,115 @@ package nginxcontroller
 
 import (
 	"fmt"
-	"path/filepath"
-	"encoding/json"
 	"net/http"
+	"path/filepath"
+	"regexp"
 )
 
+type ValidatableRequest interface {
+	Validate() (*ErrorResponse, bool)
+}
+
+func IsValidDomain(domain string) bool {
+	var domainRegex = regexp.MustCompile(`^(localhost|([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63})$`)
+	return domainRegex.MatchString(domain)
+}
+
 type AcmeCreateRequest struct {
-  Domain string `json:"domain"`
-  Token string `json:"token"`
-  KeyAuth string `json:"KeyAuth"`
+	Domain  string `json:"domain"`
+	Token   string `json:"token"`
+	KeyAuth string `json:"KeyAuth"`
+}
+
+func (self AcmeCreateRequest) Validate(
+	w http.ResponseWriter,
+	r *http.Request,
+) bool {
+  if !IsValidDomain(self.Domain) {
+    return false
+  }
+
+	return true
 }
 
 type AcmeDeleteRequest struct {
-  Domain string `json:"domain"`
-  Token string `json:"token"`
+	Domain string `json:"domain"`
+	Token  string `json:"token"`
 }
 
-func acmeLocationPath(
-  token string,
-) string {
-  return filepath.Join("/.well-known/acme-challenge/", token)
-}
-
-func (self *Controller) Acme(w http.ResponseWriter, r *http.Request) {
-  switch r.Method {
-  case "POST":
-    req := new(AcmeCreateRequest)
-    defer r.Body.Close()
-    if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-      w.WriteHeader(http.StatusBadRequest)
-      return
-    }
-    
-    server := self.config.GetOrCreateHttpServerConfig(req.Domain)
-    acmeLocation := NewLocationConfig(
-      acmeLocationPath(req.Token),
-      ExactMatching,
-			fmt.Sprintf(`return 200 "%s"`, req.KeyAuth),
-			"add_header Content-Type text/plain",
-    )
-    server.AddLocation(acmeLocation)
-
-    err := openDirectory(func (d directory) error {
-      filepath, err := d.storeFile("conf", self.config.Content())
-      if err != nil {
-        return err
-      }
-
-      if err := self.ReloadNginxConfig(filepath); err != nil {
-        return err
-      }
-
-      return nil
-    })
-    if err != nil {
-      w.Header().Set("Content-Type", "application/json")
-      w.WriteHeader(http.StatusInternalServerError)
-      json.NewEncoder(w).Encode(map[string]any {
-        "error": "internal-error",
-        "message": err.Error(),
-      })
-      return
-    }
-
-	  w.WriteHeader(http.StatusCreated)
-
-  case "DELETE":
-    req := new(AcmeDeleteRequest)
-    defer r.Body.Close()
-    if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-      w.WriteHeader(http.StatusBadRequest)
-      return
-    }
-
-    if !self.config.ExistServerConfig(req.Domain) {
-      w.WriteHeader(http.StatusBadRequest)
-      return
-    }
-
-    deleted := self.config.DeleteHttpLocation(
-      req.Domain,
-      acmeLocationPath(req.Token),
-      ExactMatching,
-    )
-    if !deleted {
-      w.WriteHeader(http.StatusBadRequest)
-      return
-    }
-
-    err := openDirectory(func (d directory) error {
-      filepath, err := d.storeFile("conf", self.config.Content())
-      if err != nil {
-        return err
-      }
-
-      if err := self.ReloadNginxConfig(filepath); err != nil {
-        return err
-      }
-
-      return nil
-    })
-    if err != nil {
-      w.Header().Set("Content-Type", "application/json")
-      w.WriteHeader(http.StatusInternalServerError)
-      json.NewEncoder(w).Encode(map[string]any {
-        "error": "internal-error",
-        "message": err.Error(),
-      })
-      return
-    }
-
-	  w.WriteHeader(http.StatusNoContent)
-
-  default:
-    w.WriteHeader(http.StatusMethodNotAllowed)
-    return
+func (self AcmeDeleteRequest) Validate(
+	w http.ResponseWriter,
+	r *http.Request,
+) bool {
+  if !IsValidDomain(self.Domain) {
+    return false
   }
+
+	return true
+}
+
+func acmeLocationPath(token string) string {
+	return filepath.Join("/.well-known/acme-challenge/", token)
+}
+
+func (self *Controller) DeleteAcme(
+	w http.ResponseWriter,
+	r *http.Request,
+	command *AcmeDeleteRequest,
+) {
+	d, err := openDirectory()
+	if err != nil {
+		replyInternalServerError(w, "Failed to open directory to store data. "+err.Error())
+		return
+	}
+	defer d.close()
+
+	loc := self.config.DeleteHttpLocation(
+		command.Domain,
+		acmeLocationPath(command.Token),
+		ExactMatching,
+	)
+	if loc == nil {
+		replyBadRequest(w, &ErrorResponse{
+			ErrorType:    "invalid-delete-location",
+			ErrorMessage: "The specified location to delete was not found for the given domain and token.",
+		})
+		return
+	}
+
+	if err := self.StoreAndApplyConfig(w, self.config, d); err != nil {
+		self.config.SetHttpLocation(command.Domain, loc)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (self *Controller) SetAcme(
+	w http.ResponseWriter,
+	r *http.Request,
+	command *AcmeCreateRequest,
+) {
+	d, err := openDirectory()
+	if err != nil {
+		replyInternalServerError(w, "Failed to open directory to store data. "+err.Error())
+		return
+	}
+	defer d.close()
+
+  self.config.SetHttpLocation(
+    command.Domain,
+    NewLocationConfig(
+      acmeLocationPath(command.Token),
+      ExactMatching,
+      fmt.Sprintf(`return 200 "%s"`, command.KeyAuth),
+      "add_header Content-Type text/plain",
+    ),
+  )
+
+	if err := self.StoreAndApplyConfig(w, self.config, d); err != nil {
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }

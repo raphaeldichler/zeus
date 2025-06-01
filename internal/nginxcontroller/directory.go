@@ -14,30 +14,30 @@ import (
 
 type directory string
 
-func openDirectory(tx func (dir directory) (error)) error {
-  tmp, err := os.MkdirTemp("", "")
-  if err != nil {
-    return err
-  }
+func openDirectory() (directory, error) {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		return "", err
+	}
 
-  if err := tx(directory(tmp)); err != nil {
-    return err
-  }
+	return directory(tmp), nil
+}
 
-  return os.RemoveAll(tmp)
+func (d directory) close() error {
+	return os.RemoveAll(string(d))
 }
 
 func (d directory) store(filename string, content []byte) (string, error) {
-  path := filepath.Join(string(d), filename)
-  return path, os.WriteFile(path, content, 0600)
+	path := filepath.Join(string(d), filename)
+	return path, os.WriteFile(path, content, 0600)
 }
 
 func (d directory) storeFile(ext string, content []byte) (string, error) {
-  assert.StartsNotWith(ext, '.', "the method appends a '.' to the filename")
+	assert.StartsNotWith(ext, '.', "the method appends a '.' to the filename")
 
-  b := make([]byte, 16)
-  rand.Read(b)
-  filename := hex.EncodeToString(b) + "." + ext
+	b := make([]byte, 16)
+	rand.Read(b)
+	filename := hex.EncodeToString(b) + "." + ext
 
-  return d.store(filename, content)
+	return d.store(filename, content)
 }

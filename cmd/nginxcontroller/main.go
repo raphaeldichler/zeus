@@ -11,14 +11,14 @@ import (
 )
 
 func main() {
-  server, err := nginxcontroller.NewServer()
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "Failed to initialize the server, got '%s'", err.Error())
+	server, err := nginxcontroller.NewServer()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize the server, got '%s'\n", err.Error())
 		os.Exit(1)
-  }
+	}
 
-  if err := server.Run(); err != nil {
-    fmt.Fprintf(os.Stderr, "Failed run server, got '%s'", err.Error())
+	if err := server.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed run server, got '%s'\n", err.Error())
 		os.Exit(1)
-  }
+	}
 }
