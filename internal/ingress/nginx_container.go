@@ -15,27 +15,16 @@ func DefaultContainer(
 	c, err := runtime.NewContainer(
 		application,
 		"ingress-nginx",
-		runtime.WithImage("nginx:1.27"),
+		runtime.WithImage("raphaeldichler/zeus-nginx:1.0.0"),
 		runtime.WithPulling(),
 		runtime.WithExposeTcpPort("80", "80"),
 		runtime.WithExposeTcpPort("443", "443"),
 		runtime.WithConnectedToNetwork(network),
 		runtime.WithObjectTypeLabel("ingress"),
-		runtime.WithCmd("nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"),
-		runtime.WithCopyIntoBeforeStart(DefaultHttpConfig()),
+		//runtime.WithCopyIntoBeforeStart(DefaultHttpConfig()),
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, path := range []string{
-		NginxInternalCertificatePath,
-		NginxInternalServerPath,
-		NginxInternalLocationPath,
-	} {
-		if err := c.EnsurePathExists(path); err != nil {
-			return nil, err
-		}
 	}
 
 	return c, nil

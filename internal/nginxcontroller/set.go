@@ -55,3 +55,7 @@ func (self *Set[T]) get(other *T) *T {
 
 	return nil
 }
+
+func (self *Set[T]) size() int {
+	return len(self.arr)
+}

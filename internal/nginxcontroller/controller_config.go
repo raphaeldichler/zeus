@@ -23,11 +23,10 @@ type ApplyRequest struct {
 }
 
 type ServerRequest struct {
-	Domain       string              `json:"domain"`
-	Certificate  *CertificateRequest `json:"certificate"`
-	Locations    []LocationRequest   `json:"locations"`
-	IPv6Enabled  bool                `json:"ipv6Enabled"`
-	DefaultSever bool                `json:"defaultServer"`
+	Domain      string              `json:"domain"`
+	Certificate *CertificateRequest `json:"certificate"`
+	Locations   []LocationRequest   `json:"locations"`
+	IPv6Enabled bool                `json:"ipv6Enabled"`
 }
 
 type LocationRequest struct {
@@ -85,7 +84,6 @@ func (self *Controller) Apply(
 			server.Domain,
 			server.IPv6Enabled,
 			tls,
-			server.DefaultSever,
 		)
 		for _, loc := range server.Locations {
 			m, ok := matching[loc.Matching]

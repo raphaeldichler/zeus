@@ -75,7 +75,7 @@ func (self *NginxConfig) GetOrCreateHttpServerConfig(
 ) *ServerConfig {
 	server := self.GetHttpServerConfig(domain)
 	if server == nil {
-		server = NewServerConfig(domain, false, nil, false)
+		server = NewServerConfig(domain, false, nil)
 		self.Servers = append(self.Servers, server)
 	}
 

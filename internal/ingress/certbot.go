@@ -9,9 +9,9 @@ import (
 	"crypto/rsa"
 
 	"github.com/go-acme/lego/v4/certificate"
+	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
-	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
 type LetEntryptUser struct {
@@ -32,42 +32,19 @@ func (self *LetEntryptUser) GetPrivateKey() crypto.PrivateKey {
 	return self.key
 }
 
-type NginxHttp01Provider struct {
-	controller *NginxController
-}
-
-func (self *NginxHttp01Provider) Present(
-	domain string,
-	token string,
-	keyAuth string,
-) error {
-	if err := self.controller.SetAcmeChallengeLocation(
-		domain,
-		token,
-		keyAuth,
-	); err != nil {
-		return err
-	}
-
-	if err := self.controller.ApplyConfig(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (self *NginxHttp01Provider) CleanUp(domain, token, keyAuth string) error {
-	return nil
+type CertificateBundle struct {
+  FullchainPem []byte
+  PrivKeyPem []byte
 }
 
 func ObtainCertificate(
-	controller *NginxController,
-	domains []string,
+	p challenge.Provider,
+	domain string,
 	email string,
-) error {
+) (*CertificateBundle, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	user := &LetEntryptUser{
@@ -76,29 +53,33 @@ func ObtainCertificate(
 	}
 
 	config := lego.NewConfig(user)
-	//config.CADirURL = lego.LEDirectoryStaging
+	config.CADirURL = lego.LEDirectoryStaging
 	client, err := lego.NewClient(config)
 
 	// create an account with the email address provided
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	user.registration = reg
 
-	err = client.Challenge.SetHTTP01Provider(&NginxHttp01Provider{controller: controller})
-	assert.ErrNil(err)
+	client.Challenge.SetHTTP01Provider(p)
 
-	_, err = client.Certificate.Obtain(certificate.ObtainRequest{
-		Domains: domains,
+  certificates, err := client.Certificate.Obtain(certificate.ObtainRequest{
+		Domains: []string{domain},
 		Bundle:  true,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	//client.Certificate.Renew()
-	//certificate, privateKey := certificates.Certificate, certificates.PrivateKey
 
-	return nil
+	return &CertificateBundle{
+    FullchainPem: certificates.Certificate,
+    PrivKeyPem: certificates.PrivateKey,
+  },nil
 }
+
+
+
+

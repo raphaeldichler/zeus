@@ -1,0 +1,35 @@
+{
+  "subdomains": {
+    "block": true,
+  },
+  "servers": [
+    {
+      "errors": {
+        "": "",
+
+      },
+      "host": "poseidon.com",
+      "ipv6": true,
+      "tls": {
+        "state": "obtain",
+        "expires": 12340349,
+        "privkeyPem": "",
+        "fullchainPem": "",
+      }
+      "http": {
+        "paths": [
+          {
+            "path": "/",
+            "type": "prefix",
+            "service": "/v1.0/service/frontend"
+          },
+          {
+            "path": "/rick",
+            "type": "exact",
+            "service": "/v1.0/service/rickroll"
+          }
+        ]
+      }
+    }
+  ]
+}

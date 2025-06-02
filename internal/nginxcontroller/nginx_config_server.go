@@ -4,25 +4,22 @@
 package nginxcontroller
 
 type ServerConfig struct {
-	Domain        string
-	Tls           *TlsCertificate
-	IPv6          bool
-	Locations     Set[LocationsConfig]
-	DefaultServer bool
+	Domain    string
+	Tls       *TlsCertificate
+	IPv6      bool
+	Locations Set[LocationsConfig]
 }
 
 func NewServerConfig(
 	domain string,
 	ipv6Enabled bool,
 	tls *TlsCertificate,
-	defaultServer bool,
 ) *ServerConfig {
 	return &ServerConfig{
-		Domain:        domain,
-		Tls:           tls,
-		IPv6:          ipv6Enabled,
-		Locations:     NewSet[LocationsConfig](),
-		DefaultServer: defaultServer,
+		Domain:    domain,
+		Tls:       tls,
+		IPv6:      ipv6Enabled,
+		Locations: NewSet[LocationsConfig](),
 	}
 }
 
@@ -46,23 +43,18 @@ func (self *ServerConfig) write(w *ConfigBuilder) {
 	w.writeln("server {")
 	w.intend()
 
-	defaultServerAddition := ""
-	if self.DefaultServer {
-		defaultServerAddition = " default_server"
-	}
-
-	listenIpv4 := "listen 80"
-	listenIpv6 := "listen [::]:80"
+	listenIpv4 := "listen 80;"
+	listenIpv6 := "listen [::]:80;"
 	additionHttp2 := ""
 	if self.IsTlsEnabled() {
-		listenIpv4 = "listen 443 ssl"
-		listenIpv6 = "listen [::]:443 ssl"
+		listenIpv4 = "listen 443 ssl;"
+		listenIpv6 = "listen [::]:443 ssl;"
 		additionHttp2 = "http2 on;"
 	}
 
-	w.writeln(listenIpv4, defaultServerAddition, ";")
+	w.writeln(listenIpv4)
 	if self.IPv6 {
-		w.writeln(listenIpv6, defaultServerAddition, ";")
+		w.writeln(listenIpv6)
 	}
 	w.writeln(additionHttp2)
 
@@ -74,17 +66,6 @@ func (self *ServerConfig) write(w *ConfigBuilder) {
 
 	for _, loc := range self.Locations.entries() {
 		loc.write(w)
-	}
-
-	if self.DefaultServer {
-		fallback := &LocationsConfig{
-			Path:     "/",
-			Matching: PrefixMatching,
-			Entries: []string{
-				"return 444",
-			},
-		}
-		fallback.write(w)
 	}
 
 	w.unintend()
