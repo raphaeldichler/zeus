@@ -1,6 +1,10 @@
 # Zeus
 [![Go Report Card](https://goreportcard.com/badge/github.com/raphaeldichler/zeus)](https://goreportcard.com/report/github.com/raphaeldichler/zeus)
 
+<img src="https://github.com/raphaeldichler/zeus/blob/30294adb1b0fad8f4e8632b39dfa939c3bce266e/docs/icon.png" width="100">
+
+
+
 ----
 
 Zeus is an open-source system for managing containerized applications on a single host. It provides essential mechanisms for deploying and maintaining applications.
@@ -33,8 +37,3 @@ What started as a simple, single-container deployment now requires three contain
 Beyond monitoring, we also need a way to interact with the application externally. This typically leads to introducing a reverse proxy to coordinate access between services. And if we want to serve the application securely over HTTPS with a trusted certificate, we’ll need a container to handle certificate generation and renewal.
 
 In the end, we’ve gone from a single container to a small but complex setup involving multiple services, each of which must be configured, maintained, and deployed reliably in a production environment.
-
-<p align="center">
-  <img src="./docs/problem.png">
-</p>
-
