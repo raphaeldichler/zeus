@@ -28,12 +28,4 @@ Zeus was born from the observation that many applications face similar requireme
 
 ### The Problem We’re Solving
 
-Let’s consider a scenario involving a monolithic application - often the simplest and least error-prone architectural approach. Initially, deploying a single container may seem sufficient. However, as the application evolves, we may want to observe its behavior and detect problems as early as possible.
-
-One option could be integrating custom observability features directly into the monolith, but this quickly becomes overkill. A more practical solution is to run a [Grafana](https://grafana.com/) container alongside the application to visualize metrics. To feed data into Grafana, we also need a [Prometheus](https://prometheus.io/) container to collect metrics from the application.
-
-What started as a simple, single-container deployment now requires three containers just to enable basic observability.
-
-Beyond monitoring, we also need a way to interact with the application externally. This typically leads to introducing a reverse proxy to coordinate access between services. And if we want to serve the application securely over HTTPS with a trusted certificate, we’ll need a container to handle certificate generation and renewal.
-
-In the end, we’ve gone from a single container to a small but complex setup involving multiple services, each of which must be configured, maintained, and deployed reliably in a production environment.
+Let’s consider a scenario involving a monolithic application, which results in deploying a single container. However, as the application evolves, we may want to observe its behavior and detect problems as early as possible. The most common solution to this is to integrate a containerized [Grafana](https://grafana.com/) application to visualize metrics. To feed data into Grafana, we also need a [Prometheus](https://prometheus.io/) container to collect metrics from the main application. What started as a simple, single-container deployment now requires three containers just to enable basic observability. Beyond monitoring, we also need a way to interact with the application externally. This typically leads to introducing a reverse proxy to coordinate access between services. And if we want to serve the application securely over HTTPS with a trusted certificate, we’ll need a container to handle certificate generation and renewal. In the end, we’ve gone from a single container to a small but complex setup involving multiple services, each of which must be configured, maintained, and deployed reliably in a production environment.
