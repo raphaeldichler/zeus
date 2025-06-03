@@ -12,6 +12,7 @@ import (
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
+	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
 type LetEntryptUser struct {
@@ -55,6 +56,8 @@ func ObtainCertificate(
 	config := lego.NewConfig(user)
 	config.CADirURL = lego.LEDirectoryStaging
 	client, err := lego.NewClient(config)
+  assert.ErrNil(err)
+	client.Challenge.SetHTTP01Provider(p)
 
 	// create an account with the email address provided
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
@@ -62,8 +65,6 @@ func ObtainCertificate(
 		return nil, err
 	}
 	user.registration = reg
-
-	client.Challenge.SetHTTP01Provider(p)
 
   certificates, err := client.Certificate.Obtain(certificate.ObtainRequest{
 		Domains: []string{domain},

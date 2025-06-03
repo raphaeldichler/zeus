@@ -7,6 +7,7 @@ type RecordKey string
 
 type ApplicationRecord struct {
 	Ingress RecordIngress
+  Service RecordService
 }
 
 // Persists the application state

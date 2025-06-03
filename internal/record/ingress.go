@@ -24,7 +24,7 @@ type ServerRecord struct {
 	Host string
 	IPv6 bool
 	Tls  *TlsRecord
-	HTTP []HTTP
+	HTTP HTTP
 }
 
 type HTTP struct {
@@ -33,7 +33,7 @@ type HTTP struct {
 
 type Path struct {
 	Path    string
-	Type    string
+	Matching string
 	Service RecordKey
 }
 

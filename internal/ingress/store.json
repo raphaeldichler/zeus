@@ -5,8 +5,12 @@
   "servers": [
     {
       "errors": {
-        "": "",
-
+        {
+          "type": "",
+          "state": "",
+          "status": "",
+          "message": "Failed to do stuff",
+        },
       },
       "host": "poseidon.com",
       "ipv6": true,

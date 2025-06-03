@@ -22,6 +22,76 @@ type ApplyRequest struct {
 	Servers []ServerRequest `json:"servers"`
 }
 
+func NewApplyRequest() *ApplyRequest {
+  return &ApplyRequest{
+    Servers: make([]ServerRequest, 0),
+  }
+}
+
+type ServerRequestOption func (cfg *ServerRequest)
+
+type ServerRequestOptions struct {
+  Options []ServerRequestOption
+}
+
+
+func NewServerRequestOptions() *ServerRequestOptions {
+  return &ServerRequestOptions {
+    Options: make([]ServerRequestOption, 0),
+  }
+}
+
+func (self *ServerRequestOptions) Add(opt ServerRequestOption) {
+  self.Options = append(self.Options, opt)
+}
+
+func WithCertificate(
+  privkeyPem string,
+  fullchainPem string,
+) ServerRequestOption {
+  return func (cfg *ServerRequest) {
+    cfg.Certificate = &CertificateRequest{
+      PrivkeyPem: privkeyPem,
+      FullchainPem: fullchainPem,
+    }
+  }
+}
+
+func WithLocation(
+  path string,
+  matching string,
+  serviceEndpoint string,
+) ServerRequestOption {
+  return func (cfg *ServerRequest) {
+    cfg.Locations = append(cfg.Locations, LocationRequest{
+      Path: path,
+      Matching: matching,
+      ServiceEndpoint: serviceEndpoint,
+    })
+  }
+}
+
+func WithDomain(domain string) ServerRequestOption {
+  return func (cfg *ServerRequest) {
+    cfg.Domain = domain
+  }
+}
+
+func WithIPv6() ServerRequestOption {
+  return func (cfg *ServerRequest) {
+    cfg.IPv6Enabled = true
+  }
+}
+
+func (self *ApplyRequest) AddServer(opts ...ServerRequestOption) {
+  server := new(ServerRequest)
+  for _, opt := range opts {
+    opt(server)
+  }
+
+  self.Servers = append(self.Servers, *server)
+}
+
 type ServerRequest struct {
 	Domain      string              `json:"domain"`
 	Certificate *CertificateRequest `json:"certificate"`
