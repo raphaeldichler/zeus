@@ -7,8 +7,7 @@ RUN go mod download
 COPY ./ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./nginxcontroller ./cmd/nginxcontroller
 
-# nginx:1.27-alpine
-FROM nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+FROM nginx:1.27-alpine
 
 COPY ./cmd/nginxcontroller/nginx.conf /etc/nginx/nginx.conf
 
