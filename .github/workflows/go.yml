@@ -13,16 +13,19 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set Go version
+      id: go-version
+      run: echo "version=$(cat .go-version)" >> $GITHUB_OUTPUT
+
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.24'
+        go-version: ${{ steps.go-version.outputs.version }}
 
     - name: Build
       run: go build -v ./...
