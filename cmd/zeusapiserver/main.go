@@ -5,9 +5,8 @@ package main
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
+	"os"
 )
 
 func main() {
