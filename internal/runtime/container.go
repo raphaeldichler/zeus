@@ -205,8 +205,7 @@ func (self *Container) Shutdown() error {
 }
 
 func (self *Container) IsRunning() (bool, error) {
-	ctx := context.Background()
-	resp, err := self.client.ContainerInspect(ctx, self.id)
+	resp, err := self.Inspect()
 	if err != nil {
 		return false, err
 	}
@@ -395,4 +394,9 @@ func (self *Container) AssertIsRunning() error {
 	assert.True(runs, "a container must run to copy data into")
 
 	return nil
+}
+
+func (self *Container) Inspect() (container.InspectResponse, error) {
+	ctx := context.Background()
+	return self.client.ContainerInspect(ctx, self.id)
 }

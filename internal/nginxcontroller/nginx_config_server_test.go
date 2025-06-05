@@ -33,38 +33,38 @@ func TestNginxControllerServerConfigSetRemoveLocation(t *testing.T) {
 	sc.SetLocation(l4)
 
 	if sc.Locations.size() != 3 {
-    t.Errorf("server config should contain 3 different configs, but got '%d'", sc.Locations.size())
+		t.Errorf("server config should contain 3 different configs, but got '%d'", sc.Locations.size())
 	}
 
-  l1Return := sc.RemoveLocation(l1)
-  if l1.Path != l1Return.Path || l1.Matching != l1Return.Matching {
-    t.Errorf("removed location should equal in path and match, but got '%q'", l1Return)
-  }
+	l1Return := sc.RemoveLocation(l1)
+	if l1.Path != l1Return.Path || l1.Matching != l1Return.Matching {
+		t.Errorf("removed location should equal in path and match, but got '%q'", l1Return)
+	}
 	if sc.Locations.size() != 2 {
-    t.Errorf("server config should contain 2 different configs, but got '%d'", sc.Locations.size())
+		t.Errorf("server config should contain 2 different configs, but got '%d'", sc.Locations.size())
 	}
 
-  l2Return := sc.RemoveLocation(l2)
-  if l2.Path != l2Return.Path || l2.Matching != l2Return.Matching {
-    t.Errorf("removed location should equal in path and match, but got '%q'", l2Return)
-  }
+	l2Return := sc.RemoveLocation(l2)
+	if l2.Path != l2Return.Path || l2.Matching != l2Return.Matching {
+		t.Errorf("removed location should equal in path and match, but got '%q'", l2Return)
+	}
 	if sc.Locations.size() != 1 {
-    t.Errorf("server config should contain 1 different configs, but got '%d'", sc.Locations.size())
+		t.Errorf("server config should contain 1 different configs, but got '%d'", sc.Locations.size())
 	}
 
-  l3Return := sc.RemoveLocation(l1)
-  if l3Return != nil {
-    t.Errorf("location was already remove, but got still a non nil location '%q'", l3Return)
-  }
+	l3Return := sc.RemoveLocation(l1)
+	if l3Return != nil {
+		t.Errorf("location was already remove, but got still a non nil location '%q'", l3Return)
+	}
 	if sc.Locations.size() != 1 {
-    t.Errorf("server config should contain 1 different configs, but got '%d'", sc.Locations.size())
+		t.Errorf("server config should contain 1 different configs, but got '%d'", sc.Locations.size())
 	}
 
-  l4Return := sc.RemoveLocation(l4)
-  if l4.Path != l4Return.Path || l4.Matching != l4Return.Matching {
-    t.Errorf("location was already remove, but got still a non nil location '%q'", l3Return)
-  }
+	l4Return := sc.RemoveLocation(l4)
+	if l4.Path != l4Return.Path || l4.Matching != l4Return.Matching {
+		t.Errorf("location was already remove, but got still a non nil location '%q'", l3Return)
+	}
 	if sc.Locations.size() != 0 {
-    t.Errorf("server config should contain 0 different configs, but got '%d'", sc.Locations.size())
+		t.Errorf("server config should contain 0 different configs, but got '%d'", sc.Locations.size())
 	}
 }

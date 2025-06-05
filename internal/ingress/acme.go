@@ -34,8 +34,8 @@ func (self *LetEntryptUser) GetPrivateKey() crypto.PrivateKey {
 }
 
 type CertificateBundle struct {
-  FullchainPem []byte
-  PrivKeyPem []byte
+	FullchainPem []byte
+	PrivKeyPem   []byte
 }
 
 func ObtainCertificate(
@@ -56,7 +56,7 @@ func ObtainCertificate(
 	config := lego.NewConfig(user)
 	config.CADirURL = lego.LEDirectoryStaging
 	client, err := lego.NewClient(config)
-  assert.ErrNil(err)
+	assert.ErrNil(err)
 	client.Challenge.SetHTTP01Provider(p)
 
 	// create an account with the email address provided
@@ -66,7 +66,7 @@ func ObtainCertificate(
 	}
 	user.registration = reg
 
-  certificates, err := client.Certificate.Obtain(certificate.ObtainRequest{
+	certificates, err := client.Certificate.Obtain(certificate.ObtainRequest{
 		Domains: []string{domain},
 		Bundle:  true,
 	})
@@ -74,13 +74,8 @@ func ObtainCertificate(
 		return nil, err
 	}
 
-
 	return &CertificateBundle{
-    FullchainPem: certificates.Certificate,
-    PrivKeyPem: certificates.PrivateKey,
-  },nil
+		FullchainPem: certificates.Certificate,
+		PrivKeyPem:   certificates.PrivateKey,
+	}, nil
 }
-
-
-
-

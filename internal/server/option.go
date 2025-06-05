@@ -4,8 +4,6 @@
 package server
 
 import (
-	"encoding/json"
-	"io"
 	"net"
 	"net/http"
 )
@@ -25,20 +23,6 @@ type ServerConfig struct {
 	Controllers []Controller
 }
 
-type DecoderFunc[T HttpRequest] func(r io.Reader, out *T) error
-
-type HandlerConfig[T HttpRequest] struct {
-	Decoder DecoderFunc[T]
-}
-
-func DefaultHandlerConfig[T HttpRequest]() *HandlerConfig[T] {
-	return &HandlerConfig[T]{
-		Decoder: func(r io.Reader, out *T) error {
-			return json.NewDecoder(r).Decode(out)
-		},
-	}
-}
-
 func DefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
 		Listener:    nil,
@@ -48,11 +32,9 @@ func DefaultServerConfig() *ServerConfig {
 
 type ServerOption func(cfg *ServerConfig)
 
-type HandlerOption[T HttpRequest] func(cfg *HandlerConfig[T])
+type ControllerFunction[T any] func(w http.ResponseWriter, r *http.Request, command *T)
 
-type ControllerFunction[T HttpRequest] func(w http.ResponseWriter, r *http.Request, command *T)
-
-func Listen(
+func WithListener(
 	listener net.Listener,
 ) ServerOption {
 	return func(cfg *ServerConfig) {
@@ -60,7 +42,7 @@ func Listen(
 	}
 }
 
-func Post[T HttpRequest](
+func Post[T any](
 	path string,
 	controller ControllerFunction[T],
 	opts ...HandlerOption[T],
@@ -68,7 +50,7 @@ func Post[T HttpRequest](
 	return handle("POST", path, controller, opts...)
 }
 
-func Get[T HttpRequest](
+func Get[T any](
 	path string,
 	controller ControllerFunction[T],
 	opts ...HandlerOption[T],
@@ -76,7 +58,7 @@ func Get[T HttpRequest](
 	return handle("GET", path, controller, opts...)
 }
 
-func Delete[T HttpRequest](
+func Delete[T any](
 	path string,
 	controller ControllerFunction[T],
 	opts ...HandlerOption[T],
@@ -84,7 +66,7 @@ func Delete[T HttpRequest](
 	return handle("DELETE", path, controller, opts...)
 }
 
-func Put[T HttpRequest](
+func Put[T any](
 	path string,
 	controller ControllerFunction[T],
 	opts ...HandlerOption[T],
@@ -92,7 +74,7 @@ func Put[T HttpRequest](
 	return handle("PUT", path, controller, opts...)
 }
 
-func handle[T HttpRequest](
+func handle[T any](
 	method string,
 	path string,
 	controller ControllerFunction[T],
@@ -110,11 +92,11 @@ func handle[T HttpRequest](
 			Run: func(w http.ResponseWriter, r *http.Request) {
 				req := new(T)
 
-				if err := hc.Decoder(r.Body, req); err != nil {
+				if err := hc.Decoder(w, r, req); err != nil {
 					return
 				}
 
-				if ok := (*req).Validate(w, r); !ok {
+				if ok := hc.Validation(w, r, *req); !ok {
 					return
 				}
 
@@ -123,11 +105,5 @@ func handle[T HttpRequest](
 		}
 
 		cfg.Controllers = append(cfg.Controllers, ctr)
-	}
-}
-
-func Decoder[T HttpRequest](f DecoderFunc[T]) HandlerOption[T] {
-	return func(cfg *HandlerConfig[T]) {
-		cfg.Decoder = f
 	}
 }

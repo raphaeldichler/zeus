@@ -1,0 +1,27 @@
+
+
+server.SetDefaultDecoder(FastJsonDecoder)
+server.New(
+  server.Listen(...),
+  server.Post(
+    "/acme",
+    self.SetAcme,
+    server.RequestDecoder(SetAcmeDecoder),
+    server.OnSuccessValidation(self.OnSuccessSetAcmeValidation),
+  ),
+)
+
+func (self AcmeCreateRequest) Validate(
+	w http.ResponseWriter,
+	r *http.Request,
+) bool {
+
+}
+
+func (self *Controller) SetAcme(
+	w http.ResponseWriter,
+	r *http.Request,
+	command *AcmeCreateRequest,
+) {
+  ...
+}

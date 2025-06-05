@@ -23,73 +23,72 @@ type ApplyRequest struct {
 }
 
 func NewApplyRequest() *ApplyRequest {
-  return &ApplyRequest{
-    Servers: make([]ServerRequest, 0),
-  }
+	return &ApplyRequest{
+		Servers: make([]ServerRequest, 0),
+	}
 }
 
-type ServerRequestOption func (cfg *ServerRequest)
+type ServerRequestOption func(cfg *ServerRequest)
 
 type ServerRequestOptions struct {
-  Options []ServerRequestOption
+	Options []ServerRequestOption
 }
 
-
 func NewServerRequestOptions() *ServerRequestOptions {
-  return &ServerRequestOptions {
-    Options: make([]ServerRequestOption, 0),
-  }
+	return &ServerRequestOptions{
+		Options: make([]ServerRequestOption, 0),
+	}
 }
 
 func (self *ServerRequestOptions) Add(opt ServerRequestOption) {
-  self.Options = append(self.Options, opt)
+	self.Options = append(self.Options, opt)
 }
 
 func WithCertificate(
-  privkeyPem string,
-  fullchainPem string,
+	privkeyPem string,
+	fullchainPem string,
 ) ServerRequestOption {
-  return func (cfg *ServerRequest) {
-    cfg.Certificate = &CertificateRequest{
-      PrivkeyPem: privkeyPem,
-      FullchainPem: fullchainPem,
-    }
-  }
+	return func(cfg *ServerRequest) {
+		cfg.Certificate = &CertificateRequest{
+			PrivkeyPem:   privkeyPem,
+			FullchainPem: fullchainPem,
+		}
+	}
 }
 
 func WithLocation(
-  path string,
-  matching string,
-  serviceEndpoint string,
+	path string,
+	matching string,
+	serviceEndpoint string,
 ) ServerRequestOption {
-  return func (cfg *ServerRequest) {
-    cfg.Locations = append(cfg.Locations, LocationRequest{
-      Path: path,
-      Matching: matching,
-      ServiceEndpoint: serviceEndpoint,
-    })
-  }
+	return func(cfg *ServerRequest) {
+		cfg.Locations = append(cfg.Locations, LocationRequest{
+			Path:            path,
+			Matching:        matching,
+			ServiceEndpoint: serviceEndpoint,
+		})
+	}
 }
 
 func WithDomain(domain string) ServerRequestOption {
-  return func (cfg *ServerRequest) {
-    cfg.Domain = domain
-  }
+	return func(cfg *ServerRequest) {
+		cfg.Domain = domain
+	}
 }
 
 func WithIPv6() ServerRequestOption {
-  return func (cfg *ServerRequest) {
-    cfg.IPv6Enabled = true
-  }
+	return func(cfg *ServerRequest) {
+		cfg.IPv6Enabled = true
+	}
 }
 
 func (self *ApplyRequest) AddServer(opts ...ServerRequestOption) {
-  server := new(ServerRequest)
-  for _, opt := range opts {
-    opt(server)
-  }
+	server := new(ServerRequest)
+	for _, opt := range opts {
+		opt(server)
+	}
 
-  self.Servers = append(self.Servers, *server)
+	self.Servers = append(self.Servers, *server)
 }
 
 type ServerRequest struct {
@@ -110,9 +109,10 @@ type CertificateRequest struct {
 	FullchainPem string `json:"fullchainPem"`
 }
 
-func (self ApplyRequest) Validate(
+func ValidateApplyRequest(
 	w http.ResponseWriter,
 	r *http.Request,
+	req ApplyRequest,
 ) bool {
 	return true
 }

@@ -1,4 +1,7 @@
 {
+  "metadata": {
+    "name": "ingress",
+  }
   "subdomains": {
     "block": true,
   },

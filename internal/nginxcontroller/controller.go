@@ -46,8 +46,12 @@ func NewServer() (*Controller, error) {
 		config: NewNginxConfig(),
 	}
 	self.server = server.New(
-		server.Listen(listen),
-		server.Post("/apply", self.Apply),
+		server.WithListener(listen),
+		server.Post(
+			"/apply",
+			self.Apply,
+			server.WithRequestValidation(ValidateApplyRequest),
+		),
 		server.Post("/acme", self.SetAcme),
 		server.Delete("/acme", self.DeleteAcme),
 	)

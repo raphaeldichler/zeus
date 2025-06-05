@@ -4,7 +4,9 @@
 package ingress
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/nginxcontroller"
 	"github.com/raphaeldichler/zeus/internal/record"
+	"github.com/raphaeldichler/zeus/internal/runtime"
 )
 
 const (
@@ -20,78 +23,89 @@ const (
 )
 
 type IngressControllerManager struct {
-  // HTTP client to the nginx controller
-  nginxControllerClient *http.Client 
+	// HTTP client to the nginx controller
+	nginxControllerClient *http.Client
+	container             *runtime.Container
 
 	log log.Logger
 }
 
 // setting http over socket
 func NewIngress() *IngressControllerManager {
-  dialer := func (ctx context.Context, _ string, _ string) (net.Conn, error) {
-    return net.Dial("unix", "some path to the socket")
-  }
+	dialer := func(ctx context.Context, _ string, _ string) (net.Conn, error) {
+		return net.Dial("unix", "some path to the socket")
+	}
 
-  transport := &http.Transport{DialContext: dialer}
-  client := &http.Client{
-    Transport: transport,
-    Timeout: 5 * time.Second,
-  }
+	transport := &http.Transport{DialContext: dialer}
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   5 * time.Second,
+	}
 
-  return &IngressControllerManager {
-    nginxControllerClient: client,
-  }
+	return &IngressControllerManager{
+		nginxControllerClient: client,
+	}
 }
 
-
-func (self *IngressControllerManager) Sync(state *record.ApplicationRecord) error {
+func (self *IngressControllerManager) Sync(state *record.ApplicationRecord) {
 	self.log.Info("Starting IngressControllerManager.Sync() - syncing ingress controllers")
+	if !state.Ingress.Enabled() {
+		// nothing todo. no configuration was set
+		self.log.Info("Nothing todo. Completed syncing ingress controllers")
+		return
+	}
+
 	self.syncTlsCertificates(state)
 
-  req := nginxcontroller.NewApplyRequest()
-  for _, server := range state.Ingress.Servers {
-    tls := server.Tls
-    if tls != nil && tls.State == record.TlsObtain {
-      // we skip it, tls sync failed - server 
-      // dependency error - tls certificate failed so this fails
-      continue
-    }
+	req := nginxcontroller.NewApplyRequest()
+	for _, server := range state.Ingress.Servers {
+		tls := server.Tls
+		if tls != nil && tls.State == record.TlsObtain {
+			// we skip it, tls sync failed - server
+			// dependency error - tls certificate failed so this fails
+			continue
+		}
 
-    opts := nginxcontroller.NewServerRequestOptions()
-    if server.IPv6 {
-      opts.Add(nginxcontroller.WithIPv6())
-    }
+		opts := nginxcontroller.NewServerRequestOptions()
+		if server.IPv6 {
+			opts.Add(nginxcontroller.WithIPv6())
+		}
 
-    if tls != nil {
-      opts.Add(
-        nginxcontroller.WithCertificate(
-          string(tls.PrivkeyPem),
-          string(tls.FullchainPem),
-        ),
-      )
-    }
+		if tls != nil {
+			opts.Add(
+				nginxcontroller.WithCertificate(
+					string(tls.PrivkeyPem),
+					string(tls.FullchainPem),
+				),
+			)
+		}
 
-    for _, paths := range server.HTTP.Paths {
-      serviceEndpoint := state.Service.GetEndpoint(paths.Service)
+		for _, paths := range server.HTTP.Paths {
+			serviceEndpoint := state.Service.GetEndpoint(paths.Service)
 
-      // we need to load the service entpoint by this key paths.Service
-      opts.Add(
-        nginxcontroller.WithLocation(
-          paths.Path,
-          paths.Matching,
-          serviceEndpoint,
-        ),
-      )
-    }
+			// we need to load the service entpoint by this key paths.Service
+			opts.Add(
+				nginxcontroller.WithLocation(
+					paths.Path,
+					paths.Matching,
+					serviceEndpoint,
+				),
+			)
+		}
 
-    req.AddServer(opts.Options...) 
-  }
+		req.AddServer(opts.Options...)
+	}
 
-  response, err := self.nginxControllerClient.Post("/apply", "application/json", nil)
+	body, err := json.Marshal(req)
+	assert.ErrNil(err)
 
+	_, err = self.nginxControllerClient.Post("/apply", "application/json", bytes.NewReader(body))
+	if err != nil {
+		// failed to send request
+
+	}
 
 	self.log.Info("Completed syncing ingress controllers")
-	return nil
 }
 
 func (self *IngressControllerManager) syncTlsCertificates(state *record.ApplicationRecord) {
@@ -131,9 +145,4 @@ func (self *IngressControllerManager) syncTlsCertificates(state *record.Applicat
 		}
 	}
 
-}
-
-func (self *IngressControllerManager) Inspect() error {
-
-	return nil
 }

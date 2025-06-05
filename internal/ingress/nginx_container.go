@@ -7,6 +7,10 @@ import (
 	"github.com/raphaeldichler/zeus/internal/runtime"
 )
 
+const (
+	ContainerImage = "zeus-nginx:v1.0.0"
+)
+
 func DefaultContainer(
 	application string,
 	network *runtime.Network,

@@ -9,6 +9,11 @@ const (
 	IngressKey RecordKey = "/v1.0/ingress"
 )
 
+const (
+	MatchingExact  = "exact"
+	MatchingPrefix = "prefix"
+)
+
 type TlsState int
 
 const (
@@ -17,24 +22,31 @@ const (
 )
 
 type RecordIngress struct {
-	Servers []ServerRecord
+	Metadata IngressMetadataRecord
+	Servers  []ServerRecord
+}
+
+type IngressMetadataRecord struct {
+	Name       string
+	CreateTime time.Time
+	Image      string
 }
 
 type ServerRecord struct {
 	Host string
 	IPv6 bool
 	Tls  *TlsRecord
-	HTTP HTTP
+	HTTP HttpRecord
 }
 
-type HTTP struct {
-	Paths []Path
+type HttpRecord struct {
+	Paths []PathRecord
 }
 
-type Path struct {
-	Path    string
+type PathRecord struct {
+	Path     string
 	Matching string
-	Service RecordKey
+	Service  RecordKey
 }
 
 type TlsRecord struct {
@@ -43,4 +55,8 @@ type TlsRecord struct {
 	Expires          time.Time
 	PrivkeyPem       []byte
 	FullchainPem     []byte
+}
+
+func (self *RecordIngress) Enabled() bool {
+	return len(self.Servers) > 0
 }
