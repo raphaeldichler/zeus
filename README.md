@@ -1,11 +1,9 @@
 # Zeus
-[![Go Report Card](https://goreportcard.com/badge/github.com/raphaeldichler/zeus)](https://goreportcard.com/report/github.com/raphaeldichler/zeus)
 
 <img src="https://github.com/raphaeldichler/zeus/blob/30294adb1b0fad8f4e8632b39dfa939c3bce266e/docs/icon.png" width="100">
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/raphaeldichler/zeus)](https://goreportcard.com/report/github.com/raphaeldichler/zeus)
 
-
-----
 
 Zeus is an open-source system for managing containerized applications on a single host. It provides essential mechanisms for deploying and maintaining applications.
 
