@@ -10,7 +10,6 @@ import (
 	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
 )
 
-
 func main() {
 	server, err := zeusapiserver.New()
 	if err != nil {
