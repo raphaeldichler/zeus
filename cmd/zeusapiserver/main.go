@@ -5,12 +5,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
 	"os"
+
+	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
 )
 
 func main() {
-	server, err := zeusapiserver.New()
+	  server, err := zeusapiserver.New()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize the server, got '%s'\n", err.Error())
 		os.Exit(1)
