@@ -10,6 +10,11 @@ import (
 	"regexp"
 )
 
+const (
+	DeleteAcmeAPIPath = "/acme"
+	SetAcmeAPIPath    = "/acme"
+)
+
 type ValidatableRequest interface {
 	Validate() (*ErrorResponse, bool)
 }

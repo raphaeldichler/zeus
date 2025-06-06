@@ -49,6 +49,18 @@ func NewNetwork(
 	}, err
 }
 
+// Selects a container by the labels if it exists. No promise about the container is made,
+// it can be in any state.
+//
+// If not container exists nil is returned.
+func SelectNetwork(
+	labels []Label,
+) *Network {
+	assert.NotNil(c, "init of docker-client failed")
+
+	return nil
+}
+
 func (self *Network) NetworkName() string {
 	return self.networkName
 }

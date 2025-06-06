@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -111,6 +112,19 @@ func WithCmd(cmd ...string) ContainerOption {
 	}
 }
 
+func WithMount(hostMount string, containerMount string) ContainerOption {
+	return func(cfg *ContainerConfig) {
+		cfg.hostConfig.Mounts = append(
+			cfg.hostConfig.Mounts,
+			mount.Mount{
+				Type:   mount.TypeBind,
+				Source: hostMount,
+				Target: containerMount,
+			},
+		)
+	}
+}
+
 func WithExposeTcpPort(hostPort string, containerPort string) ContainerOption {
 	assert.StartsNotWithString(hostPort, "tcp/", "we will append tcp/ if needed")
 	assert.StartsNotWithString(containerPort, "tcp/", "we will append tcp/ if needed")
@@ -151,10 +165,6 @@ func WithLabel(key string, value string) ContainerOption {
 	}
 }
 
-func WithObjectTypeLabel(objectType string) ContainerOption {
-	return WithLabel("zeus.object.type", objectType)
-}
-
 func WithCopyIntoBeforeStart(file FileContent) ContainerOption {
 	return func(cfg *ContainerConfig) {
 		cfg.filesToCopyInto = append(cfg.filesToCopyInto, file)
@@ -182,6 +192,23 @@ func NewContainer(
 	}
 
 	return cfg.startContainer()
+}
+
+type Label struct {
+	Value string
+	Key   string
+}
+
+// Selects a container by the labels if it exists. No promise about the container is made,
+// it can be in any state.
+//
+// If not container exists nil is returned.
+func SelectContainer(
+	labels []Label,
+) *Container {
+	assert.NotNil(c, "init of docker-client failed")
+
+	return nil
 }
 
 func (self *Container) DisconnectNetwork(network *Network) error {

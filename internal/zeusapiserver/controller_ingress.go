@@ -3,7 +3,9 @@
 
 package zeusapiserver
 
-import "net/http"
+import (
+	"net/http"
+)
 
 const IngressInspectAPIPath = "/v1.0/applications/{application}/ingress"
 
@@ -27,7 +29,7 @@ func (self *ZeusController) GetIngressInspectRequestValidation(
 ) bool {
 	_, ok := self.Applications[out.Application]
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		return false
 	}
 
@@ -40,4 +42,5 @@ func (self *ZeusController) GetIngressInspect(
 	command *IngressInspectRequest,
 ) {
 	// so we need to do fetch the state?
+
 }

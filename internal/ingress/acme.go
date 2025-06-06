@@ -15,6 +15,10 @@ import (
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
+const (
+	CADirURL = lego.LEDirectoryStaging
+)
+
 type LetEntryptUser struct {
 	email        string
 	registration *registration.Resource
@@ -54,10 +58,12 @@ func ObtainCertificate(
 	}
 
 	config := lego.NewConfig(user)
-	config.CADirURL = lego.LEDirectoryStaging
+	config.CADirURL = CADirURL
 	client, err := lego.NewClient(config)
 	assert.ErrNil(err)
-	client.Challenge.SetHTTP01Provider(p)
+
+	err = client.Challenge.SetHTTP01Provider(p)
+	assert.ErrNil(err)
 
 	// create an account with the email address provided
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})

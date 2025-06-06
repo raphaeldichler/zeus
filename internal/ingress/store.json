@@ -1,4 +1,32 @@
 {
+  "errors": {
+    "ingress": [
+      {
+        "type": "FailedCreatingIngressContainer", 
+        "identifier": "*",
+        "message": "err.Error()",
+      },
+    ]
+    "servers": [
+      {
+        "type": "FailedSendingIngressConfig", 
+        "identifier": "*",
+        "message": "err.Error()",
+      },
+      {
+        "type": "FailedApplyingIngressConfig", 
+        "identifier": "*",
+        "message": "err.Error()",
+      },
+    ],
+    "tls": [
+      {
+        "type": "FailedObtainCertificate",
+        "identifier": "poseidon.com",
+        "message": "err.Error()",
+      },
+    ],
+  },
   "metadata": {
     "name": "ingress",
   }
@@ -7,14 +35,6 @@
   },
   "servers": [
     {
-      "errors": {
-        {
-          "type": "",
-          "state": "",
-          "status": "",
-          "message": "Failed to do stuff",
-        },
-      },
       "host": "poseidon.com",
       "ipv6": true,
       "tls": {

@@ -3,7 +3,11 @@
 
 package record
 
-import "time"
+import (
+	"time"
+
+	"github.com/opencontainers/image-spec/identity"
+)
 
 const (
 	IngressKey RecordKey = "/v1.0/ingress"
@@ -22,6 +26,7 @@ const (
 )
 
 type RecordIngress struct {
+	Errors   IngressErrorRecord
 	Metadata IngressMetadataRecord
 	Servers  []ServerRecord
 }
@@ -57,6 +62,63 @@ type TlsRecord struct {
 	FullchainPem     []byte
 }
 
+type IngressErrorRecord struct {
+	Ingress []IngressErrorEntryRecord
+	Server  []IngressErrorEntryRecord
+	TLS     []IngressErrorEntryRecord
+}
+
+type IngressErrorEntryRecord struct {
+	Type       string
+	Identifier string
+	Message    string
+}
+
 func (self *RecordIngress) Enabled() bool {
 	return len(self.Servers) > 0
+}
+
+func (self *IngressErrorRecord) SetTlsError(
+	errorType string,
+	identifier string,
+	message string,
+) {
+	self.TLS = append(
+		self.TLS,
+		IngressErrorEntryRecord{
+			Type:       errorType,
+			Identifier: identifier,
+			Message:    message,
+		},
+	)
+}
+
+func (self *IngressErrorRecord) SetServerError(
+	errorType string,
+	identifier string,
+	message string,
+) {
+	self.Server = append(
+		self.Server,
+		IngressErrorEntryRecord{
+			Type:       errorType,
+			Identifier: identifier,
+			Message:    message,
+		},
+	)
+}
+
+func (self *IngressErrorRecord) SetIngressError(
+	errorType string,
+	identifier string,
+	message string,
+) {
+	self.Server = append(
+		self.Server,
+		IngressErrorEntryRecord{
+			Type:       errorType,
+			Identifier: identifier,
+			Message:    message,
+		},
+	)
 }

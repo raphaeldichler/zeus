@@ -52,8 +52,8 @@ func NewServer() (*Controller, error) {
 			self.Apply,
 			server.WithRequestValidation(ValidateApplyRequest),
 		),
-		server.Post("/acme", self.SetAcme),
-		server.Delete("/acme", self.DeleteAcme),
+		server.Post(SetAcmeAPIPath, self.SetAcme),
+		server.Delete(DeleteAcmeAPIPath, self.DeleteAcme),
 	)
 
 	return self, nil
@@ -80,6 +80,7 @@ func (self *Controller) StoreAndApplyConfig(
 	err := cfg.Store(d)
 	if err != nil {
 		replyInternalServerError(w, "Failed to store nginx config. "+err.Error())
+		return err
 	}
 
 	if err := self.ReloadNginxConfig(); err != nil {
