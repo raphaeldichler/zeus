@@ -36,12 +36,12 @@ type ServerRequestOptions struct {
 
 func NewServerRequestOptions() *ServerRequestOptions {
 	return &ServerRequestOptions{
-		Options: make([]ServerRequestOption, 0),
+		Options: nil,
 	}
 }
 
-func (self *ServerRequestOptions) Add(opt ServerRequestOption) {
-	self.Options = append(self.Options, opt)
+func (self *ServerRequestOptions) Add(opt ...ServerRequestOption) {
+	self.Options = append(self.Options, opt...)
 }
 
 func WithCertificate(
@@ -76,9 +76,9 @@ func WithDomain(domain string) ServerRequestOption {
 	}
 }
 
-func WithIPv6() ServerRequestOption {
+func WithIPv6Enabled(ipv6Enabled bool) ServerRequestOption {
 	return func(cfg *ServerRequest) {
-		cfg.IPv6Enabled = true
+		cfg.IPv6Enabled = ipv6Enabled
 	}
 }
 

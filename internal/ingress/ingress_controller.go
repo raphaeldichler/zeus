@@ -23,6 +23,13 @@ const (
 	TlsNewRenewThreshold = time.Hour * 24 * 40
 )
 
+const (
+	ErrTypeFailedCreatingIngressContainer = "FailedCreatingIngressContainer"
+	ErrTypeFailedSendingIngressConfig     = "FailedSendingIngressConfig"
+	ErrTypeFailedApplyingIngressConfig    = "FailedApplyingIngressConfig"
+	ErrTypeFailedObtainCertificate        = "FailedObtainCertificate"
+)
+
 type IngressDaemon struct {
 	application string
 
@@ -85,19 +92,19 @@ func (self *IngressDaemon) ensureContainer(state *record.ApplicationRecord) {
 		c, err := runtime.NewContainer(
 			self.application,
 			"ingress-nginx",
-			runtime.WithImage("raphaeldichler/zeus-nginx:1.0.0"),
+			runtime.WithImage(state.Ingress.Metadata.Image),
 			runtime.WithPulling(),
 			runtime.WithExposeTcpPort("80", "80"),
 			runtime.WithExposeTcpPort("443", "443"),
 			runtime.WithConnectedToNetwork(self.network),
 			runtime.WithLabel("zeus.object.type", "ingress"),
-			runtime.WithLabel("zeus.object.image", "zeus-nginx:v1.0.0"),
+			runtime.WithLabel("zeus.object.image", state.Ingress.Metadata.Image),
 			runtime.WithLabel("zeus.application.name", self.application),
 			runtime.WithMount(self.hostNginxControllerSocket(), nginxcontroller.SocketPath),
 		)
 		if err != nil {
 			state.Ingress.Errors.SetServerError(
-				"FailedCreatingIngressContainer",
+				ErrTypeFailedCreatingIngressContainer,
 				"*",
 				err.Error(),
 			)
@@ -121,48 +128,10 @@ func (self *IngressDaemon) Sync(state *record.ApplicationRecord) {
 	self.ensureContainer(state)
 	self.syncTlsCertificates(state)
 
-	req := nginxcontroller.NewApplyRequest()
-	for _, server := range state.Ingress.Servers {
-		tls := server.Tls
-		if tls != nil && tls.State == record.TlsObtain {
-			// we skip it, tls sync failed - server
-			// dependency error - tls certificate failed so this fails
-			continue
-		}
-
-		opts := nginxcontroller.NewServerRequestOptions()
-		if server.IPv6 {
-			opts.Add(nginxcontroller.WithIPv6())
-		}
-
-		if tls != nil {
-			opts.Add(
-				nginxcontroller.WithCertificate(
-					string(tls.PrivkeyPem),
-					string(tls.FullchainPem),
-				),
-			)
-		}
-
-		for _, paths := range server.HTTP.Paths {
-			serviceEndpoint := state.Service.GetEndpoint(paths.Service)
-
-			opts.Add(
-				nginxcontroller.WithLocation(
-					paths.Path,
-					paths.Matching,
-					serviceEndpoint,
-				),
-			)
-		}
-
-		req.AddServer(opts.Options...)
-	}
-
-	response, err := self.nginxControllerClient.SetConfig(req)
+	response, err := self.nginxControllerClient.SetConfig(self.buildIngressConfigRequest(state))
 	if err != nil {
 		state.Ingress.Errors.SetServerError(
-			"FailedSendingIngressConfig",
+			ErrTypeFailedSendingIngressConfig,
 			"*",
 			err.Error(),
 		)
@@ -176,7 +145,7 @@ func (self *IngressDaemon) Sync(state *record.ApplicationRecord) {
 
 	if response.StatusCode == http.StatusInternalServerError {
 		state.Ingress.Errors.SetServerError(
-			"FailedApplyingIngressConfig",
+			ErrTypeFailedApplyingIngressConfig,
 			"*",
 			err.Error(),
 		)
@@ -208,7 +177,7 @@ func (self *IngressDaemon) syncTlsCertificates(state *record.ApplicationRecord) 
 		)
 		if err != nil {
 			state.Ingress.Errors.SetTlsError(
-				"FailedObtainCertificate",
+				ErrTypeFailedObtainCertificate,
 				server.Host,
 				err.Error(),
 			)
@@ -220,4 +189,46 @@ func (self *IngressDaemon) syncTlsCertificates(state *record.ApplicationRecord) 
 		tls.State = record.TlsRenew
 		tls.Expires = time.Now().Add(TlsNewRenewThreshold)
 	}
+}
+
+func (self *IngressDaemon) buildIngressConfigRequest(
+	state *record.ApplicationRecord,
+) *nginxcontroller.ApplyRequest {
+	req := nginxcontroller.NewApplyRequest()
+	for _, server := range state.Ingress.Servers {
+		if state.Ingress.Errors.ExistsTlsError(ErrTypeFailedObtainCertificate, server.Host) {
+			continue
+		}
+
+		opts := nginxcontroller.NewServerRequestOptions()
+		opts.Add(
+			nginxcontroller.WithDomain(server.Host),
+			nginxcontroller.WithIPv6Enabled(server.IPv6),
+		)
+
+		if tls := server.Tls; tls != nil {
+			opts.Add(
+				nginxcontroller.WithCertificate(
+					string(tls.PrivkeyPem),
+					string(tls.FullchainPem),
+				),
+			)
+		}
+
+		for _, paths := range server.HTTP.Paths {
+			serviceEndpoint := state.Service.GetEndpoint(paths.Service)
+
+			opts.Add(
+				nginxcontroller.WithLocation(
+					paths.Path,
+					paths.Matching,
+					serviceEndpoint,
+				),
+			)
+		}
+
+		req.AddServer(opts.Options...)
+	}
+
+	return req
 }

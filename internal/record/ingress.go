@@ -5,8 +5,6 @@ package record
 
 import (
 	"time"
-
-	"github.com/opencontainers/image-spec/identity"
 )
 
 const (
@@ -121,4 +119,17 @@ func (self *IngressErrorRecord) SetIngressError(
 			Message:    message,
 		},
 	)
+}
+
+func (self *IngressErrorRecord) ExistsTlsError(
+	errorType string,
+	identifier string,
+) bool {
+	for _, err := range self.TLS {
+		if err.Type == errorType && err.Identifier == identifier {
+			return true
+		}
+	}
+
+	return false
 }
