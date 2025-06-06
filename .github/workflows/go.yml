@@ -20,7 +20,13 @@ jobs:
     
     - name: Check formatting with gofmt
       run: |
-        unformatted=$(gofmt -l .)
+        unformatted=$(gofmt -l ./internal)
+        if [ -n "$unformatted" ]; then
+          echo "The following files are not properly formatted:"
+          echo "$unformatted"
+          exit 1
+        fi
+        unformatted=$(gofmt -l ./cmd)
         if [ -n "$unformatted" ]; then
           echo "The following files are not properly formatted:"
           echo "$unformatted"
