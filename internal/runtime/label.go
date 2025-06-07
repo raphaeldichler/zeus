@@ -11,7 +11,7 @@ type Label struct {
 }
 
 func ObjectTypeLabel(object string) Label {
-  assert.In(object, []string{"ingress", "network"}, "can only set valid object as labels")
+	assert.In(object, []string{"ingress", "network"}, "can only set valid object as labels")
 
 	return Label{value: "zeus.object.type", key: object}
 }

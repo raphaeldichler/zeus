@@ -77,7 +77,6 @@ func (self *RecordIngress) Enabled() bool {
 	return len(self.Servers) > 0
 }
 
-
 func (self *IngressErrorRecord) SetIngressError(entry IngressErrorEntryRecord) {
 	self.TLS = append(self.TLS, entry)
 }

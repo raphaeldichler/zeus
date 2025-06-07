@@ -52,25 +52,24 @@ func NewIngress(application string) *IngressDaemon {
 	}
 }
 
-
 func (self *IngressDaemon) Sync(state *record.ApplicationRecord) {
 	self.log.Info("Starting IngressControllerManager.Sync() - syncing ingress controllers")
-  defer self.log.Info("Completed syncing ingress controllers")
+	defer self.log.Info("Completed syncing ingress controllers")
 	if !state.Ingress.Enabled() {
 		return
 	}
 
-  self.ensureNetwork(state)
+	self.ensureNetwork(state)
 	self.ensureContainer(state)
-  if self.container == nil {
-    return
-  }
+	if self.container == nil {
+		return
+	}
 	self.syncTlsCertificates(state)
 
 	response, err := self.nginxControllerClient.SetConfig(self.buildIngressConfigRequest(state))
 	if err != nil {
 		state.Ingress.Errors.SetIngressError(
-      errtype.FailedInteractionWithNginxController(errtype.NginxSend, err),
+			errtype.FailedInteractionWithNginxController(errtype.NginxSend, err),
 		)
 		return
 	}
@@ -82,13 +81,13 @@ func (self *IngressDaemon) Sync(state *record.ApplicationRecord) {
 
 	if response.StatusCode == http.StatusInternalServerError {
 		state.Ingress.Errors.SetIngressError(
-      errtype.FailedInteractionWithNginxController(errtype.NginxApply, err),
+			errtype.FailedInteractionWithNginxController(errtype.NginxApply, err),
 		)
 	}
 }
 
 func (self *IngressDaemon) hostNginxControllerSocketPath() string {
-  return filepath.Join(self.hostNginxControllerMountPath(), "nginx.sock")
+	return filepath.Join(self.hostNginxControllerMountPath(), "nginx.sock")
 }
 
 func (self *IngressDaemon) hostNginxControllerMountPath() string {
@@ -99,8 +98,8 @@ func (self *IngressDaemon) ensureNetwork(state *record.ApplicationRecord) {
 	if self.network == nil {
 		self.network = runtime.SelectNetwork(
 			[]runtime.Label{
-        runtime.ObjectImageLabel("network"),
-        runtime.ApplicationNameLabel(self.application),
+				runtime.ObjectImageLabel("network"),
+				runtime.ApplicationNameLabel(self.application),
 			},
 		)
 	}
@@ -115,29 +114,29 @@ func (self *IngressDaemon) ensureContainer(state *record.ApplicationRecord) {
 	if self.container == nil {
 		selectedContainers, err := runtime.SelectContainer(
 			[]runtime.Label{
-        runtime.ObjectTypeLabel("ingress"),
-        runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
-        runtime.ApplicationNameLabel(self.application),
+				runtime.ObjectTypeLabel("ingress"),
+				runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
+				runtime.ApplicationNameLabel(self.application),
 			},
 		)
-    if err != nil {
-      state.Ingress.Errors.SetIngressError(
-        errtype.FailedInteractionWithDockerDaemon(errtype.DockerSelect, err),
-      )
-    }
+		if err != nil {
+			state.Ingress.Errors.SetIngressError(
+				errtype.FailedInteractionWithDockerDaemon(errtype.DockerSelect, err),
+			)
+		}
 
-    switch len(selectedContainers) {
-    case 0:
-      self.container = nil
+		switch len(selectedContainers) {
+		case 0:
+			self.container = nil
 
-    case 1:
-      self.container = selectedContainers[0]
+		case 1:
+			self.container = selectedContainers[0]
 
-    default:
-      assert.Unreachable(
-        "Too many ingress container exists in the current context. Possible external tampering.",
-      )
-    }
+		default:
+			assert.Unreachable(
+				"Too many ingress container exists in the current context. Possible external tampering.",
+			)
+		}
 	}
 
 	if self.container == nil {
@@ -149,90 +148,88 @@ func (self *IngressDaemon) ensureContainer(state *record.ApplicationRecord) {
 			runtime.WithExposeTcpPort("80", "80"),
 			runtime.WithExposeTcpPort("443", "443"),
 			runtime.WithConnectedToNetwork(self.network),
-      runtime.WithLabels(
-        runtime.ObjectTypeLabel("ingress"),
-        runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
-        runtime.ApplicationNameLabel(self.application),
-      ),
+			runtime.WithLabels(
+				runtime.ObjectTypeLabel("ingress"),
+				runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
+				runtime.ApplicationNameLabel(self.application),
+			),
 			runtime.WithMount(self.hostNginxControllerMountPath(), nginxcontroller.SocketMountPath),
 		)
 		if err != nil {
-      state.Ingress.Errors.SetIngressError(
-        errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreate, err),
-      )
+			state.Ingress.Errors.SetIngressError(
+				errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreate, err),
+			)
 			return
 		}
 		self.container = c
 	}
 	assert.NotNil(self.container, "at this state the container was set correctly")
 
-  if ok := self.validateContainer(state); !ok {
-    if err := self.container.Shutdown(); err != nil {
-      state.Ingress.Errors.SetIngressError(
-        errtype.FailedInteractionWithDockerDaemon(errtype.DockerStop, err),
-      )
-    }
-    self.container = nil
-    return
-  }
+	if ok := self.validateContainer(state); !ok {
+		if err := self.container.Shutdown(); err != nil {
+			state.Ingress.Errors.SetIngressError(
+				errtype.FailedInteractionWithDockerDaemon(errtype.DockerStop, err),
+			)
+		}
+		self.container = nil
+		return
+	}
 
 	self.nginxControllerClient = nginxcontroller.NewClient(self.application, self.hostNginxControllerSocketPath())
 	self.acmeProvider = NewNginxChallengeProvider(self.nginxControllerClient, self.application)
 }
 
-
 func (self *IngressDaemon) validateContainer(state *record.ApplicationRecord) bool {
 	assert.NotNil(self.container, "at this state the container was set correctly")
 
-  inspect, err := self.container.Inspect()
-  if err != nil {
-      state.Ingress.Errors.SetIngressError(
-        errtype.FailedInteractionWithDockerDaemon(errtype.DockerInspect, err),
-      )
-      return false
-  }
+	inspect, err := self.container.Inspect()
+	if err != nil {
+		state.Ingress.Errors.SetIngressError(
+			errtype.FailedInteractionWithDockerDaemon(errtype.DockerInspect, err),
+		)
+		return false
+	}
 
-  mounts := inspect.Mounts
-  if len(mounts) != 1 {
-    return false
-  }
-  socketMount := mounts[0]
-  correctSocketMount := container.MountPoint {
-    Type: mount.TypeBind,
-    Source: nginxcontroller.SocketMountPath,
-    Destination: self.hostNginxControllerMountPath(),
-    Mode: "",
-    RW: true,
-    Propagation: "rprivate",
-  } 
-  if socketMount != correctSocketMount {
-    return false
-  }
+	mounts := inspect.Mounts
+	if len(mounts) != 1 {
+		return false
+	}
+	socketMount := mounts[0]
+	correctSocketMount := container.MountPoint{
+		Type:        mount.TypeBind,
+		Source:      nginxcontroller.SocketMountPath,
+		Destination: self.hostNginxControllerMountPath(),
+		Mode:        "",
+		RW:          true,
+		Propagation: "rprivate",
+	}
+	if socketMount != correctSocketMount {
+		return false
+	}
 
-  portBindings := inspect.HostConfig.PortBindings
-  if portBindings == nil {
-    return false
-  }
-  tcp443, ok := portBindings[nat.Port("443/tcp")]
-  if !ok {
-    return false
-  }
-  correctTcp443 := nat.PortBinding{HostPort: "443", HostIP: ""}
-  if len(tcp443) != 1 || tcp443[0] != correctTcp443 {
-    return false
-  }
-  tcp80, ok := portBindings[nat.Port("80/tcp")]
-  if !ok {
-    return false
-  }
-  correctTcp80 := nat.PortBinding{HostPort: "80", HostIP: ""}
-  if len(tcp80) != 1 || correctTcp80 != tcp80[0] {
-    return false
-  }
+	portBindings := inspect.HostConfig.PortBindings
+	if portBindings == nil {
+		return false
+	}
+	tcp443, ok := portBindings[nat.Port("443/tcp")]
+	if !ok {
+		return false
+	}
+	correctTcp443 := nat.PortBinding{HostPort: "443", HostIP: ""}
+	if len(tcp443) != 1 || tcp443[0] != correctTcp443 {
+		return false
+	}
+	tcp80, ok := portBindings[nat.Port("80/tcp")]
+	if !ok {
+		return false
+	}
+	correctTcp80 := nat.PortBinding{HostPort: "80", HostIP: ""}
+	if len(tcp80) != 1 || correctTcp80 != tcp80[0] {
+		return false
+	}
 
-  return true
+	return true
 }
-
 
 func (self *IngressDaemon) syncTlsCertificates(state *record.ApplicationRecord) {
 	assert.NotNil(self.acmeProvider, "using the acme provider in the next steps, it must exists")
@@ -255,9 +252,9 @@ func (self *IngressDaemon) syncTlsCertificates(state *record.ApplicationRecord) 
 			tls.CertificateEmail,
 		)
 		if err != nil {
-      state.Ingress.Errors.SetTlsError(
-        errtype.FailedObtainCertificate(server.Host, err),
-      )
+			state.Ingress.Errors.SetTlsError(
+				errtype.FailedObtainCertificate(server.Host, err),
+			)
 			continue
 		}
 

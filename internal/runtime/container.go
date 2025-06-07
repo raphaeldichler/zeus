@@ -166,9 +166,9 @@ func WithLabels(labels ...Label) ContainerOption {
 			cfg.config.Labels = make(map[string]string)
 		}
 
-    for _, label := range labels {
-		  cfg.config.Labels[label.key] = label.value
-    }
+		for _, label := range labels {
+			cfg.config.Labels[label.key] = label.value
+		}
 
 	}
 }
@@ -227,9 +227,9 @@ func SelectContainer(
 	}
 
 	container := make([]*Container, 0)
-  for _, e := range summary {
+	for _, e := range summary {
 
-  }
+	}
 
 	return nil
 }
