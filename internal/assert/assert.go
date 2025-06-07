@@ -5,6 +5,7 @@ package assert
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -110,4 +111,11 @@ func NotNil(o any, msg string) {
 	if o == nil {
 		panic(msg)
 	}
+}
+
+func In[T comparable](element T, arr []T, msg string) {
+	if slices.Contains(arr, element) {
+		return
+	}
+	panic(msg)
 }

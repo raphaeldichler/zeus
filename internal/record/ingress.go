@@ -5,6 +5,8 @@ package record
 
 import (
 	"time"
+
+	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
 const (
@@ -62,7 +64,6 @@ type TlsRecord struct {
 
 type IngressErrorRecord struct {
 	Ingress []IngressErrorEntryRecord
-	Server  []IngressErrorEntryRecord
 	TLS     []IngressErrorEntryRecord
 }
 
@@ -76,56 +77,30 @@ func (self *RecordIngress) Enabled() bool {
 	return len(self.Servers) > 0
 }
 
-func (self *IngressErrorRecord) SetTlsError(
-	errorType string,
-	identifier string,
-	message string,
-) {
-	self.TLS = append(
-		self.TLS,
-		IngressErrorEntryRecord{
-			Type:       errorType,
-			Identifier: identifier,
-			Message:    message,
-		},
-	)
+
+func (self *IngressErrorRecord) SetIngressError(entry IngressErrorEntryRecord) {
+	self.TLS = append(self.TLS, entry)
 }
 
-func (self *IngressErrorRecord) SetServerError(
-	errorType string,
-	identifier string,
-	message string,
-) {
-	self.Server = append(
-		self.Server,
-		IngressErrorEntryRecord{
-			Type:       errorType,
-			Identifier: identifier,
-			Message:    message,
-		},
-	)
+func (self *IngressErrorRecord) SetTlsError(entry IngressErrorEntryRecord) {
+	self.TLS = append(self.TLS, entry)
 }
 
-func (self *IngressErrorRecord) SetIngressError(
-	errorType string,
-	identifier string,
-	message string,
-) {
-	self.Server = append(
-		self.Server,
-		IngressErrorEntryRecord{
-			Type:       errorType,
-			Identifier: identifier,
-			Message:    message,
-		},
-	)
+func (self *IngressErrorRecord) ExistsTlsError(entry IngressErrorEntryRecord) bool {
+	for _, err := range self.TLS {
+		if err.Type == entry.Type && err.Identifier == entry.Identifier {
+			return true
+		}
+	}
+
+	return false
 }
 
-func (self *IngressErrorRecord) ExistsTlsError(
+func (self *IngressErrorRecord) ExistsIngressError(
 	errorType string,
 	identifier string,
 ) bool {
-	for _, err := range self.TLS {
+	for _, err := range self.Ingress {
 		if err.Type == errorType && err.Identifier == identifier {
 			return true
 		}

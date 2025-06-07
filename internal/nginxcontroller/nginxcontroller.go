@@ -15,6 +15,7 @@ import (
 const (
 	NginxConfigPath = "/etc/nginx/nginx.conf"
 	SocketPath      = "/run/zeus/nginx.sock"
+	SocketMountPath = "/run/zeus/"
 )
 
 type Controller struct {
