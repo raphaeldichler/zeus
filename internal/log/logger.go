@@ -6,15 +6,15 @@ package log
 import (
 	"fmt"
 	"io"
+	stdlog "log"
 	"os"
 	"time"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	logger *logrus.Logger
+	stdLogger *stdlog.Logger
 )
 
 func init() {
@@ -23,13 +23,7 @@ func init() {
 		loggerOutput = io.Discard
 	}
 
-	logger = logrus.New()
-	logger.SetOutput(loggerOutput)
-	logger.SetFormatter(&logrus.TextFormatter{
-		DisableTimestamp: true,
-		DisableColors:    false,
-		DisableQuote:     true,
-	})
+	stdLogger = stdlog.New(loggerOutput, "", 0)
 }
 
 type Logger struct {
@@ -37,11 +31,8 @@ type Logger struct {
 	daemon      string
 }
 
-func New(
-	application string,
-	daemon string,
-) *Logger {
-	assert.NotNil(logger, "invalid setup of the logger")
+func New(application string, daemon string) *Logger {
+	assert.NotNil(stdLogger, "invalid setup of the logger")
 
 	return &Logger{
 		application: application,
@@ -50,21 +41,19 @@ func New(
 }
 
 func (l *Logger) Debug(format string, args ...any) {
-	logger.Debugf(l.prefix()+format, args...)
+	stdLogger.Print(l.format("DEBUG", format, args...))
 }
 
-// Info logs an info-level message with the custom format.
 func (l *Logger) Info(format string, args ...any) {
-	logger.Infof(l.prefix()+format, args...)
+	stdLogger.Print(l.format("INFO", format, args...))
 }
 
-// Error logs an error-level message with the custom format.
 func (l *Logger) Error(format string, args ...any) {
-	logger.Errorf(l.prefix()+format, args...)
+	stdLogger.Print(l.format("ERROR", format, args...))
 }
 
-// prefix returns the "[time] [app] [daemon] " prefix.
-func (l *Logger) prefix() string {
+func (l *Logger) format(level string, format string, args ...any) string {
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	return fmt.Sprintf("[%s] [%s] [%s] ", timestamp, l.application, l.daemon)
+	prefix := fmt.Sprintf("[%s] [%s] [%s] [%s] ", timestamp, l.application, l.daemon, level)
+	return prefix + fmt.Sprintf(format, args...)
 }
