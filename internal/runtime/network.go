@@ -8,8 +8,9 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/raphaeldichler/zeus/internal/log"
 )
+
+const NetworkDaemonName = "network"
 
 func networkName(applicaiton string) string {
 	assert.StartsNotWith(applicaiton, '/', "applications cannot start with '/'")
@@ -17,52 +18,40 @@ func networkName(applicaiton string) string {
 	return "zeus/network/" + applicaiton
 }
 
-type NetworkIdentifier interface {
-	NetworkName() string
-}
-
 type Network struct {
-	id          string
-	client      *client.Client
-	networkName string
-
-	log *log.Logger
+	id     string
+	client *client.Client
+	name   string
 }
 
-func NewNetwork(
+// Interact with the docker daemon and initialises a new network
+//
+// The network gets labels with:
+//   - zeus.object.type=network
+//   - zeus.application.name={application}
+func CreateNewNetwork(
 	application string,
-	daemon string,
 ) (*Network, error) {
 	assert.NotNil(c, "init of docker-client failed")
 
 	networkName := networkName(application)
-	networkId, err := createBridgedNetwork(networkName)
+	networkId, err := createBridgedNetwork(application, networkName)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Network{
-		id:          networkId,
-		client:      c,
-		networkName: networkName,
-		log:         log.New(application, daemon),
-	}, err
+	return newNetwork(networkId, networkName), nil
 }
 
-// Selects a container by the labels if it exists. No promise about the container is made,
-// it can be in any state.
-//
-// If not container exists nil is returned.
-func SelectNetwork(
-	labels []Label,
+func newNetwork(
+	id string,
+	name string,
 ) *Network {
-	assert.NotNil(c, "init of docker-client failed")
-
-	return nil
-}
-
-func (self *Network) NetworkName() string {
-	return self.networkName
+	return &Network{
+		id:     id,
+		client: c,
+		name:   name,
+	}
 }
 
 func (self *Network) Cleanup() error {

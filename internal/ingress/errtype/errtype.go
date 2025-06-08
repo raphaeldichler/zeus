@@ -11,17 +11,19 @@ import (
 type DockerDaemonInteraction int
 
 const (
-	DockerCreate DockerDaemonInteraction = iota + 1
-	DockerSelect
-	DockerStop
-	DockerInspect
+	DockerCreateContainer DockerDaemonInteraction = iota + 1
+	DockerSelectContainer
+	DockerStopContainer
+	DockerInspectContainer
+	DockerCreateNetwork
 )
 
 var dockerDaemomnInteractionMapping map[DockerDaemonInteraction]string = map[DockerDaemonInteraction]string{
-	DockerCreate:  "create",
-	DockerSelect:  "select",
-	DockerStop:    "stop",
-	DockerInspect: "inspect",
+	DockerCreateContainer:  "create",
+	DockerSelectContainer:  "select",
+	DockerStopContainer:    "stop",
+	DockerInspectContainer: "inspect",
+	DockerCreateNetwork:    "network",
 }
 
 type NginxControllerInteraction int
@@ -71,7 +73,7 @@ func FailedInteractionWithNginxController(action NginxControllerInteraction, err
 	assert.True(ok, "identifier must exists")
 
 	return record.IngressErrorEntryRecord{
-		Type:       "FailedObtainCertificate",
+		Type:       "FailedInteractionWithNginxController",
 		Identifier: id,
 		Message:    err.Error(),
 	}

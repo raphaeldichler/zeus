@@ -114,11 +114,6 @@ func (self *IngressDaemon) Inspect(state *record.ApplicationRecord, w io.Writer)
 		// error response -
 		return nil
 	}
-	if err := self.container.AssertIsRunning(); err != nil {
-		// error response - the assertion could not be validated?
-		// we need to double check this AssertIsRunning. when does it fail?
-		return nil
-	}
 
 	inspect, err := self.container.Inspect()
 	if err != nil {

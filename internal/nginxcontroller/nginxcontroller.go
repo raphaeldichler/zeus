@@ -9,19 +9,22 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/server"
 )
 
 const (
 	NginxConfigPath = "/etc/nginx/nginx.conf"
 	SocketPath      = "/run/zeus/nginx.sock"
-	SocketMountPath = "/run/zeus/"
+	SocketMountPath = "/run/zeus"
 )
 
 type Controller struct {
 	server *server.HttpServer
 	nginx  string
 	config *NginxConfig
+
+	log *log.Logger
 }
 
 func NewServer() (*Controller, error) {
@@ -41,20 +44,31 @@ func NewServer() (*Controller, error) {
 		return nil, err
 	}
 
+	if err := os.Chmod(SocketPath, 0666); err != nil {
+		return nil, err
+	}
+
 	self := &Controller{
 		server: nil,
 		nginx:  nginx,
 		config: NewNginxConfig(),
+		log:    log.New("nginx", "controller"),
 	}
 	self.server = server.New(
 		server.WithListener(listen),
 		server.Post(
-			"/apply",
+			ApplyAPIPath,
 			self.Apply,
 			server.WithRequestValidation(ValidateApplyRequest),
 		),
-		server.Post(SetAcmeAPIPath, self.SetAcme),
-		server.Delete(DeleteAcmeAPIPath, self.DeleteAcme),
+		server.Post(
+			SetAcmeAPIPath,
+			self.SetAcme,
+		),
+		server.Delete(
+			DeleteAcmeAPIPath,
+			self.DeleteAcme,
+		),
 	)
 
 	return self, nil
@@ -70,7 +84,10 @@ func (self *Controller) Run() error {
 
 func (self *Controller) ReloadNginxConfig() error {
 	cmd := exec.Command(self.nginx, "-s", "reload")
-	return cmd.Run()
+	out, err := cmd.CombinedOutput()
+	self.log.Info("Reload nginx config. Got '%s'", string(out))
+
+	return err
 }
 
 func (self *Controller) StoreAndApplyConfig(

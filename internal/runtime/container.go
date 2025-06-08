@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -43,12 +42,13 @@ type ContainerConfig struct {
 	retryStart int
 	// Files which are copied into the container before it will be started
 	filesToCopyInto []FileContent
+	network         *Network
 
 	log *log.Logger
 }
 
 // Pulls, creates, and starts the container according to the config
-func (self *ContainerConfig) startContainer() (*Container, error) {
+func (self *ContainerConfig) startContainer(applicaiton string) (*Container, error) {
 	if self.doPull {
 		if err := pull(self.img); err != nil {
 			return nil, err
@@ -65,12 +65,7 @@ func (self *ContainerConfig) startContainer() (*Container, error) {
 		return nil, err
 	}
 
-	container := &Container{
-		id:     containerID,
-		client: c,
-		log:    self.log,
-	}
-
+	container := toContainer(applicaiton, containerID, self.network)
 	if err := container.CopyInto(self.filesToCopyInto...); err != nil {
 		return nil, err
 	}
@@ -82,7 +77,21 @@ func (self *ContainerConfig) startContainer() (*Container, error) {
 	return container, nil
 }
 
-func defaultContainerConfig(logger *log.Logger) *ContainerConfig {
+func toContainer(
+	application string,
+	containerID string,
+	network *Network,
+) *Container {
+	logger := log.New(application, "c#"+containerID[:10])
+	return &Container{
+		id:      containerID,
+		client:  c,
+		log:     logger,
+		network: network,
+	}
+}
+
+func defaultContainerConfig() *ContainerConfig {
 	return &ContainerConfig{
 		config: &container.Config{},
 		hostConfig: &container.HostConfig{
@@ -92,7 +101,6 @@ func defaultContainerConfig(logger *log.Logger) *ContainerConfig {
 		img:             "",
 		doPull:          false,
 		retryStart:      3,
-		log:             logger,
 		filesToCopyInto: []FileContent{},
 	}
 }
@@ -154,8 +162,9 @@ func WithExposeTcpPort(hostPort string, containerPort string) ContainerOption {
 
 func WithConnectedToNetwork(nt *Network) ContainerOption {
 	return func(cfg *ContainerConfig) {
+		cfg.network = nt
 		cfg.networkConfig.EndpointsConfig = map[string]*network.EndpointSettings{
-			nt.NetworkName(): {},
+			nt.name: {},
 		}
 	}
 }
@@ -180,63 +189,25 @@ func WithCopyIntoBeforeStart(file FileContent) ContainerOption {
 }
 
 type Container struct {
-	id     string
-	client *client.Client
+	id      string
+	client  *client.Client
+	network *Network
 
 	log *log.Logger
 }
 
 func NewContainer(
 	application string,
-	daemon string,
 	options ...ContainerOption,
 ) (*Container, error) {
 	assert.NotNil(c, "init of docker-client failed")
-	logger := log.New(application, daemon)
-	cfg := defaultContainerConfig(logger)
+	cfg := defaultContainerConfig()
 
 	for _, opt := range options {
 		opt(cfg)
 	}
 
-	return cfg.startContainer()
-}
-
-// Selects a container by the labels if it exists. No promise about the container is made,
-// it can be in any state.
-//
-// If not container exists nil is returned.
-func SelectContainer(
-	labels []Label,
-) ([]*Container, error) {
-	assert.NotNil(c, "init of docker-client failed")
-
-	args := filters.NewArgs()
-	for _, l := range labels {
-		args.Add(l.key, l.value)
-	}
-
-	ctx := context.Background()
-	summary, err := c.ContainerList(
-		ctx, container.ListOptions{
-			Filters: args,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	container := make([]*Container, 0)
-	for _, e := range summary {
-
-	}
-
-	return nil
-}
-
-func (self *Container) DisconnectNetwork(network *Network) error {
-	ctx := context.Background()
-	return self.client.NetworkDisconnect(ctx, network.NetworkName(), self.id, false)
+	return cfg.startContainer(application)
 }
 
 func (self *Container) String() string {
@@ -245,6 +216,12 @@ func (self *Container) String() string {
 
 func (self *Container) Shutdown() error {
 	ctx := context.Background()
+	if self.network != nil {
+		if err := self.client.NetworkDisconnect(ctx, self.network.name, self.id, false); err != nil {
+			return err
+		}
+	}
+
 	return self.client.ContainerStop(
 		ctx,
 		self.id,
@@ -252,6 +229,29 @@ func (self *Container) Shutdown() error {
 			Timeout: nil,
 		},
 	)
+}
+
+func (self *Container) Equal(other *Container) bool {
+	if self.id == other.id {
+		if self.network == nil && other.network == nil {
+			return true
+		}
+		if self.network == nil || other.network == nil {
+			assert.Unreachable("container equal in ID, but not in network")
+		}
+
+		if self.network.id != other.network.id {
+			assert.Unreachable("container equal in ID, but not in network ID")
+		}
+
+		if self.network.name != other.network.name {
+			assert.Unreachable("container equal in ID, but not in network name")
+		}
+
+		return true
+	}
+
+	return false
 }
 
 func (self *Container) IsRunning() (bool, error) {
@@ -311,6 +311,15 @@ func (self *Container) runCommand(cmd ...string) (*CmdResult, error) {
 		exitCode: insp.ExitCode,
 		stdout:   outputBuf.String(),
 	}, nil
+}
+
+func (self *Container) ReadFile(path string) (string, error) {
+	result, err := self.runCommand("cat", path)
+	if err != nil {
+		return "", err
+	}
+
+	return result.stdout, nil
 }
 
 func (self *Container) ExitsPath(path string) (bool, error) {

@@ -3,11 +3,19 @@
 
 package record
 
+type DeploymentType int
+
+const (
+	Production DeploymentType = iota + 1
+	Development
+)
+
 type RecordKey string
 
 type ApplicationRecord struct {
-	Ingress RecordIngress
-	Service RecordService
+	Deployment DeploymentType
+	Ingress    RecordIngress
+	Service    RecordService
 }
 
 // Persists the application state

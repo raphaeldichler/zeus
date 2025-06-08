@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
@@ -17,6 +18,8 @@ var (
 		"prefix": PrefixMatching,
 	}
 )
+
+const ApplyAPIPath = "/apply"
 
 type ApplyRequest struct {
 	Servers []ServerRequest `json:"servers"`
@@ -141,7 +144,10 @@ func (self *Controller) Apply(
 		replyInternalServerError(w, "Failed to open directory to store data. "+err.Error())
 		return
 	}
-	defer d.close()
+	defer time.AfterFunc(time.Minute*1, func() {
+		self.log.Info("Cleanup old context at path '%s'", string(d))
+		d.close()
+	})
 	cfg := NewNginxConfig()
 
 	for _, server := range command.Servers {

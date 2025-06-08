@@ -4,6 +4,7 @@
 package nginxcontroller
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
@@ -16,6 +17,8 @@ const (
 	ExactMatching
 )
 
+const NginxPidFilePath string = "/run/nginx.pid"
+
 type NginxConfig struct {
 	GeneralEntries []string
 	EventEntries   []string
@@ -27,7 +30,7 @@ func NewNginxConfig() *NginxConfig {
 	return &NginxConfig{
 		GeneralEntries: []string{
 			"worker_processes 1",
-			"pid /run/nginx.pid",
+			fmt.Sprintf("pid %s", NginxPidFilePath),
 			"user nginx",
 		},
 		EventEntries: []string{
@@ -154,8 +157,8 @@ type TlsCertificate struct {
 }
 
 func (self *TlsCertificate) write(w *ConfigBuilder) {
-	w.writeln("ssl_certificate ", self.FullchainFilePath)
-	w.writeln("ssl_certificate_key ", self.PrivkeyFilePath)
+	w.writeln("ssl_certificate ", self.FullchainFilePath, ";")
+	w.writeln("ssl_certificate_key ", self.PrivkeyFilePath, ";")
 }
 
 func (self *TlsCertificate) store(d directory) error {

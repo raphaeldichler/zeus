@@ -16,10 +16,11 @@ func TestIngressErrtypeDockerDaemonInteraction(t *testing.T) {
 		id   DockerDaemonInteraction
 		name string
 	}{
-		{id: DockerCreate, name: "create"},
-		{id: DockerSelect, name: "select"},
-		{id: DockerStop, name: "stop"},
-		{id: DockerInspect, name: "inspect"},
+		{id: DockerCreateContainer, name: "create.container"},
+		{id: DockerSelectContainer, name: "select.container"},
+		{id: DockerStopContainer, name: "stop.container"},
+		{id: DockerInspectContainer, name: "inspect.container"},
+		{id: DockerCreateNetwork, name: "create.network"},
 	}
 
 	for _, tt := range types {

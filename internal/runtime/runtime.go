@@ -10,8 +10,21 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
+
+var (
+	c *client.Client = nil
+)
+
+func init() {
+	cli, err := client.NewClientWithOpts(
+		client.WithAPIVersionNegotiation(),
+	)
+	assert.ErrNil(err)
+	c = cli
+}
 
 func pull(
 	imageRef string,
@@ -95,6 +108,7 @@ func existsContaienr(
 }
 
 func createBridgedNetwork(
+	application string,
 	networkName string,
 ) (string, error) {
 	ctx := context.Background()
@@ -103,7 +117,8 @@ func createBridgedNetwork(
 		networkName,
 		network.CreateOptions{
 			Labels: map[string]string{
-				"zeus.object.type": "network",
+				"zeus.object.type":      "network",
+				"zeus.application.name": application,
 			},
 		},
 	)

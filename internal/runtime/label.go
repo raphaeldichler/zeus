@@ -6,20 +6,33 @@ package runtime
 import "github.com/raphaeldichler/zeus/internal/assert"
 
 type Label struct {
-	value string
 	key   string
+	value string
 }
 
-func ObjectTypeLabel(object string) Label {
-	assert.In(object, []string{"ingress", "network"}, "can only set valid object as labels")
+type ObjectLabel int
 
-	return Label{value: "zeus.object.type", key: object}
+const (
+	IngressObject ObjectLabel = iota + 1
+	NetworkObject
+)
+
+var objectLabelMapping map[ObjectLabel]string = map[ObjectLabel]string{
+	IngressObject: "ingress",
+	NetworkObject: "network",
+}
+
+func ObjectTypeLabel(object ObjectLabel) Label {
+	e, ok := objectLabelMapping[object]
+	assert.True(ok, "object label must exists")
+
+	return Label{key: "zeus.object.type", value: e}
 }
 
 func ObjectImageLabel(image string) Label {
-	return Label{value: "zeus.object.image", key: image}
+	return Label{key: "zeus.object.image", value: image}
 }
 
 func ApplicationNameLabel(name string) Label {
-	return Label{value: "zeus.application.name", key: name}
+	return Label{key: "zeus.application.name", value: name}
 }

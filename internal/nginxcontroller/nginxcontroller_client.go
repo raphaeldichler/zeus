@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
@@ -63,7 +62,7 @@ func (self *Client) SetAcme(
 	assert.ErrNil(err)
 	body := bytes.NewReader(b)
 
-	req, err := http.NewRequest("POST", DeleteAcmeAPIPath, body)
+	req, err := http.NewRequest("POST", SetAcmeAPIPath, body)
 	assert.ErrNil(err)
 	req.Header.Set("content-type", "application/json")
 
@@ -97,7 +96,7 @@ func (self *Client) SetConfig(
 	assert.ErrNil(err)
 	body := bytes.NewReader(b)
 
-	req, err := http.NewRequest("POST", DeleteAcmeAPIPath, body)
+	req, err := http.NewRequest("POST", "http://unix"+ApplyAPIPath, body)
 	assert.ErrNil(err)
 	req.Header.Set("content-type", "application/json")
 

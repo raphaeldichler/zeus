@@ -5,8 +5,6 @@ package record
 
 import (
 	"time"
-
-	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
 const (
@@ -28,7 +26,7 @@ const (
 type RecordIngress struct {
 	Errors   IngressErrorRecord
 	Metadata IngressMetadataRecord
-	Servers  []ServerRecord
+	Servers  []*ServerRecord
 }
 
 type IngressMetadataRecord struct {
@@ -77,6 +75,14 @@ func (self *RecordIngress) Enabled() bool {
 	return len(self.Servers) > 0
 }
 
+func NewIngressRecord() RecordIngress {
+	return RecordIngress{}
+}
+
+func (self *IngressErrorRecord) NoErrors() bool {
+	return len(self.TLS) == 0 && len(self.Ingress) == 0
+}
+
 func (self *IngressErrorRecord) SetIngressError(entry IngressErrorEntryRecord) {
 	self.TLS = append(self.TLS, entry)
 }
@@ -88,19 +94,6 @@ func (self *IngressErrorRecord) SetTlsError(entry IngressErrorEntryRecord) {
 func (self *IngressErrorRecord) ExistsTlsError(entry IngressErrorEntryRecord) bool {
 	for _, err := range self.TLS {
 		if err.Type == entry.Type && err.Identifier == entry.Identifier {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (self *IngressErrorRecord) ExistsIngressError(
-	errorType string,
-	identifier string,
-) bool {
-	for _, err := range self.Ingress {
-		if err.Type == errorType && err.Identifier == identifier {
 			return true
 		}
 	}
