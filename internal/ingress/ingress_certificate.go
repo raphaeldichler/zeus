@@ -28,7 +28,7 @@ const (
 )
 
 func CertificateProviderBuilder(daemon *IngressDaemon, state *record.ApplicationRecord) CertificateProvider {
-	switch state.Deployment {
+	switch state.Metadata.Deployment {
 
 	case record.Development:
 		return &DevelopmentCertificate{}

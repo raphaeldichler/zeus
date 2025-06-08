@@ -5,7 +5,6 @@ package zeusapiserver
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/raphaeldichler/zeus/internal/assert"

@@ -168,11 +168,12 @@ func (self *RecordCollection) enableIfNonElse(app application) error {
 
 		return nil
 	})
-	switch err {
-	case ErrApplicationEnabled, bboltErr.ErrBucketNotFound:
+
+	switch {
+	case errors.Is(err, ErrApplicationEnabled), errors.Is(err, bboltErr.ErrBucketNotFound):
 		return err
 
-	case nil:
+	case errors.Is(err, nil):
 		return nil
 
 	default:
