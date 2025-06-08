@@ -3,6 +3,13 @@
 
 package record
 
+import (
+	"bytes"
+	"encoding/gob"
+
+	"github.com/raphaeldichler/zeus/internal/assert"
+)
+
 type DeploymentType int
 
 const (
@@ -10,12 +17,62 @@ const (
 	Development
 )
 
+func (d DeploymentType) String() string {
+	switch d {
+	case Production:
+		return "production"
+
+	case Development:
+		return "development"
+
+	default:
+		assert.Unreachable("all cases are covered")
+	}
+
+	return ""
+}
+
 type RecordKey string
 
 type ApplicationRecord struct {
-	Deployment DeploymentType
-	Ingress    RecordIngress
-	Service    RecordService
+	Metadata ApplicationMetadata
+	Ingress  RecordIngress
+	Service  RecordService
+}
+
+type ApplicationMetadata struct {
+	Application string
+	Deployment  DeploymentType
+	Enabled     bool
+}
+
+func New(app string, deploymentType DeploymentType) *ApplicationRecord {
+	return &ApplicationRecord{
+		Metadata: ApplicationMetadata{
+			Application: app,
+			Deployment:  deploymentType,
+			Enabled:     false,
+		},
+	}
+}
+
+func (self *ApplicationRecord) ToGob() []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(self)
+	assert.ErrNil(err)
+
+	return buf.Bytes()
+}
+
+func FromGob(data []byte) *ApplicationRecord {
+	out := new(ApplicationRecord)
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(out)
+	assert.ErrNil(err)
+
+	return out
 }
 
 // Persists the application state

@@ -23,6 +23,19 @@ const (
 	TlsRenew
 )
 
+func (t TlsState) GoString() string {
+	switch t {
+	case TlsObtain:
+		return "TlsObtain"
+
+	case TlsRenew:
+		return "TlsRenew"
+
+	default:
+		return "Unknown"
+	}
+}
+
 type RecordIngress struct {
 	Errors   IngressErrorRecord
 	Metadata IngressMetadataRecord

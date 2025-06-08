@@ -53,11 +53,6 @@ func (self *ZeusController) PostIngressApplyRequestValidator(
 	r *http.Request,
 	out IngressApplyRequest,
 ) bool {
-	_, ok := self.Applications[out.Application]
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		return false
-	}
 
 	return true
 }

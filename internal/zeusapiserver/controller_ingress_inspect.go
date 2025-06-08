@@ -27,11 +27,6 @@ func (self *ZeusController) GetIngressInspectRequestValidation(
 	r *http.Request,
 	out IngressInspectRequest,
 ) bool {
-	_, ok := self.Applications[out.Application]
-	if !ok {
-		w.WriteHeader(http.StatusNotFound)
-		return false
-	}
 
 	return true
 }

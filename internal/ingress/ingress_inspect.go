@@ -99,6 +99,9 @@ func buildCertificatResponse(state *record.ApplicationRecord) []CertificateInspe
 // GET  /v1.0/applications/poseidon/ingress/gateway
 // POST /v1.0/applications/poseidon/ingress/gateway
 //
+// POST /v1.0/applications
+// { "name": "poseidon", "deploymentType": "production|development" }
+//
 // zeus ingress apply -f/--file gateway.yml
 // zeus ingress inspect -f/--format [json|pretty]
 //

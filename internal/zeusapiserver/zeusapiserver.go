@@ -10,11 +10,13 @@ import (
 	"github.com/raphaeldichler/zeus/internal/server"
 )
 
-const SocketPath = "/run/zeus/zeusctl.sock"
+const SocketPath = "/run/zeus/zeusd.sock"
 
 type ZeusController struct {
-	Applications map[string]string
-	Server       *server.HttpServer
+	Server *server.HttpServer
+
+	records     *RecordCollection
+	application *ApplicationController
 }
 
 func New() (*ZeusController, error) {
@@ -29,11 +31,48 @@ func New() (*ZeusController, error) {
 		return nil, err
 	}
 
+	records, err := OpenAndCreateRecordCollection()
+	if err != nil {
+		return nil, err
+	}
+	applicationController := NewApplication(records)
+
 	self := &ZeusController{
-		Applications: make(map[string]string),
+		application: applicationController,
 	}
 	self.Server = server.New(
 		server.WithListener(listen),
+		// applications
+		server.Get(
+			InspectAllApplicationAPIPath,
+			applicationController.InspectAllApplication,
+			server.WithRequestDecoder(applicationController.DecoderInspectAllApplicationRequest),
+		),
+		server.Get(
+			InspectApplicationAPIPath,
+			applicationController.InspectApplication,
+			server.WithRequestDecoder(applicationController.DecoderInspectApplicationRequest),
+		),
+		server.Post(
+			CreateApplicationAPIPath,
+			applicationController.CreateApplication,
+			server.WithRequestDecoder(applicationController.DecoderCreateApplicationRequest),
+		),
+		server.Delete(
+			DeleteApplicationAPIPath,
+			applicationController.DeleteApplication,
+			server.WithRequestDecoder(applicationController.DecoderDeleteApplicationRequest),
+		),
+		server.Post(
+			EnableApplicationAPIPath,
+			applicationController.EnableApplication,
+			server.WithRequestDecoder(applicationController.DecoderEnableApplicationRequest),
+		),
+		server.Post(
+			DisableApplicationAPIPath,
+			applicationController.DisableApplication,
+			server.WithRequestDecoder(applicationController.DecoderDisableApplicationRequest),
+		),
 		// Ingress
 		server.Get(
 			IngressInspectAPIPath,
@@ -53,5 +92,9 @@ func New() (*ZeusController, error) {
 }
 
 func (self *ZeusController) Run() error {
+	defer func() {
+		self.records.cleanup()
+	}()
+
 	return self.Server.Run()
 }

@@ -6,6 +6,7 @@ require (
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/go-acme/lego/v4 v4.23.1
+	go.etcd.io/bbolt v1.4.0
 )
 
 require (
