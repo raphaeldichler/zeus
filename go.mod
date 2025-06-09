@@ -7,6 +7,7 @@ require (
 	github.com/docker/go-connections v0.5.0
 	github.com/go-acme/lego/v4 v4.23.1
 	go.etcd.io/bbolt v1.4.0
+	google.golang.org/protobuf v1.36.5
 )
 
 require (
