@@ -11,6 +11,7 @@ import (
 
 	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/server"
+	"google.golang.org/grpc"
 )
 
 const (

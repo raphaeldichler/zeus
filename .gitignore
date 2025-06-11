@@ -1,2 +1,4 @@
 zeus-proxy
 zeus-proxy.sock
+
+**/*.pb.go

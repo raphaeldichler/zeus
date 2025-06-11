@@ -1,0 +1,58 @@
+// Copyright 2025 The Zeus Authors.
+// Licensed under the Apache License 2.0. See the LICENSE file for details.
+
+syntax = "proto3";
+
+package zeus.nginxcontroller;
+option go_package = "github.com/raphaeldichler/zeus/internal/nginxcontroller";
+
+message AcmeCreateRequest {
+  string Domain = 1;
+  string Token = 2;
+  string KeyAuth = 3;
+}
+message AcmeCreateResponse {}
+
+message AcmeDeleteRequest {
+  string Domain = 1;
+  string Token = 2;
+}
+message AcmeDeleteResponse {}
+
+message IngressConfigRequest {
+  repeated Server Servers = 1;
+}
+message IngressConfigResponse {}
+
+enum Matching {
+  Prefix = 0;
+  Exact = 1;
+}
+
+message Location {
+  string Path = 1;
+  Matching Matching = 2;
+  string ServiceEndpoint = 3;
+}
+
+message TLS {
+  string Fullchain = 1;
+  string Privkey = 2;
+}
+
+message Server {
+  string Domain = 1;
+  bool IPv6Enabled = 2;
+  optional TLS Tls = 3;
+  repeated Location Locations = 4;
+}
+
+service NginxController {
+
+  rpc SetAcmeChallenge(AcmeCreateRequest) returns (AcmeCreateResponse) {}
+
+  rpc DeleteAcmeChallenge(AcmeDeleteRequest) returns (AcmeDeleteRequest) {}
+  
+  rpc SetIngressConfig(IngressConfigRequest) returns (IngressConfigResponse) {}
+
+}

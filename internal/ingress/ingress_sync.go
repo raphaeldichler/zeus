@@ -16,7 +16,7 @@ import (
 )
 
 func Sync(state *record.ApplicationRecord) {
-  log := state.Logger("ingress-daemon")
+	log := state.Logger("ingress-daemon")
 
 	log.Info("Starting syncing ingress controllers")
 	defer log.Info("Completed syncing ingress controllers")
@@ -24,16 +24,16 @@ func Sync(state *record.ApplicationRecord) {
 		return
 	}
 
-  container := SelectOrCreateIngressContainer(state)
-  if container == nil {
-    return
-  }
+	container := SelectOrCreateIngressContainer(state)
+	if container == nil {
+		return
+	}
 
-  client := nginxcontroller.NewClient(
-    state.Metadata.Application, hostNginxControllerSocketPath(state.Metadata.Application),
-  )
-  certificate := CertificateProviderBuilder(state)
-  assert.NotNil(certificate, "on container selection/creation the certifgicate provider must be selected")
+	client := nginxcontroller.NewClient(
+		state.Metadata.Application, hostNginxControllerSocketPath(state.Metadata.Application),
+	)
+	certificate := CertificateProviderBuilder(state)
+	assert.NotNil(certificate, "on container selection/creation the certifgicate provider must be selected")
 	certificate.GenerateCertificates(state)
 
 	response, err := client.SetConfig(buildIngressConfigRequest(state))

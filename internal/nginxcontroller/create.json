@@ -1,14 +1,17 @@
 {
-  "servers": [
-    {
-      "ipv6Enabled": true,
-      "defaultServer": true,
+  "blockSubdomains": {
+    "http": {
+      "block": true,
+    },
+    "https": {
+      "block": true,
       "certificate": {
         "privkeyPem": "",
         "fullchainPem": "",
-      },
-      "return": 444,
+      }
     },
+  },
+  "servers": [
     {
       "domain": "localhost",
       "ipv6Enabled": false,
