@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"path/filepath"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/log"
@@ -26,14 +27,14 @@ type Client struct {
 
 func NewClient(
 	application string,
-	socketPath string,
 ) *Client {
 	logger := log.New(
 		application, "nginx-controller-client",
 	)
 
+  socket := filepath.Join("/run/zeus", application, "ingress", "nginx.sock")
 	dialer := func(_ context.Context, _ string, _ string) (net.Conn, error) {
-		return net.Dial("unix", socketPath)
+		return net.Dial("unix", socket)
 	}
 
 	client := &http.Client{

@@ -68,3 +68,33 @@ func SelectContainer(
 
 	return result, nil
 }
+
+
+func TrySelectOneContainer(
+  application string,
+  labels ...Label,
+) (*Container, error) {
+  selectedContainers, err := SelectContainer(labels...)
+  if err != nil {
+    return nil, err
+  }
+
+  switch len(selectedContainers) {
+  case 0:
+    return nil, nil
+
+  case 1:
+    c, err := selectedContainers[0].NewContainer(application)
+    if err != nil {
+      return nil, err
+    }
+    return c, nil
+
+  default:
+    assert.Unreachable(
+      "Too many container exists in the current context. Possible external tampering.",
+    )
+  }
+
+  return nil, nil
+}

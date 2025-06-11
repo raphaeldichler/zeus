@@ -27,15 +27,17 @@ const (
 	TlsNewRenewThreshold = time.Hour * 24 * 40
 )
 
-func CertificateProviderBuilder(daemon *IngressDaemon, state *record.ApplicationRecord) CertificateProvider {
+func CertificateProviderBuilder(state *record.ApplicationRecord) CertificateProvider {
 	switch state.Metadata.Deployment {
 
 	case record.Development:
 		return &DevelopmentCertificate{}
 
 	case record.Production:
-		client := nginxcontroller.NewClient(daemon.application, hostNginxControllerSocketPath(daemon.application))
-		acmeProvider := NewNginxChallengeProvider(client, daemon.application)
+    application := state.Metadata.Application
+
+		client := nginxcontroller.NewClient(application, hostNginxControllerSocketPath(application))
+		acmeProvider := NewNginxChallengeProvider(client, application)
 
 		return &ProductionCertificate{acmeProvider: acmeProvider}
 

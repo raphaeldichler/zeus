@@ -5,8 +5,8 @@ package ingress
 
 import (
 	"os"
-	"path/filepath"
 	"time"
+	"path/filepath"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -20,13 +20,6 @@ import (
 
 const ZeusRootPath string = "/run/zeus/"
 
-func hostNginxControllerSocketPath(application string) string {
-	return filepath.Join(hostNginxControllerMountPath(application), "nginx.sock")
-}
-
-func hostNginxControllerMountPath(application string) string {
-	return filepath.Join(ZeusRootPath, application, "/ingress")
-}
 
 // Ensures that an ingress container is create and running.
 //
@@ -34,118 +27,85 @@ func hostNginxControllerMountPath(application string) string {
 // On fatal errors no container will be set and the application state will be updated accrodingly.
 func SelectOrCreateIngressContainer(
 	state *record.ApplicationRecord,
-	application string,
-	container *runtime.Container,
-) *runtime.Container {
-	if container == nil {
-		selectedContainers, err := runtime.SelectContainer(
-			runtime.ObjectTypeLabel(runtime.IngressObject),
-			runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
-			runtime.ApplicationNameLabel(application),
-		)
-		if err != nil {
-			state.Ingress.Errors.SetIngressError(
-				errtype.FailedInteractionWithDockerDaemon(errtype.DockerSelectContainer, err),
-			)
-			return nil
-		}
+) (container *runtime.Container) {
+  defer func() {
+    if container == nil {
+      return
+    }
 
-		switch len(selectedContainers) {
-		case 0:
-			container = nil
+    if ok := validateContainer(container, state.Metadata.Application, state); ok {
+      return
+    }
 
-		case 1:
-			c, err := selectedContainers[0].NewContainer(application)
-			if err != nil {
-				state.Ingress.Errors.SetIngressError(
-					errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
-				)
-				return nil
-			}
+    if err := container.Shutdown(); err != nil {
+      state.Ingress.Errors.SetIngressError(
+        errtype.FailedInteractionWithDockerDaemon(errtype.DockerStopContainer, err),
+      )
+    }
+    container = nil
+  }()
 
-			container = c
+  // todo: change to select one container
+  selectedContainers, err := runtime.SelectContainer(
+    runtime.ObjectTypeLabel(runtime.IngressObject),
+    runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
+    runtime.ApplicationNameLabel(state.Metadata.Application),
+  )
+  if err != nil {
+    state.Ingress.Errors.SetIngressError(
+      errtype.FailedInteractionWithDockerDaemon(errtype.DockerSelectContainer, err),
+    )
+    return nil
+  }
 
-		default:
-			assert.Unreachable(
-				"Too many ingress container exists in the current context. Possible external tampering.",
-			)
-		}
-	}
+  switch len(selectedContainers) {
+  case 0:
+    break
 
-	if container == nil {
-		networks, err := runtime.SelectNetworks(
-			runtime.ObjectTypeLabel(runtime.NetworkObject),
-			runtime.ApplicationNameLabel(application),
-		)
-		if err != nil {
-			state.Ingress.Errors.SetIngressError(
-				errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
-			)
-		}
+  case 1:
+    c, err := selectedContainers[0].NewContainer(state.Metadata.Application)
+    if err != nil {
+      state.Ingress.Errors.SetIngressError(
+        errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
+      )
+      return nil
+    }
+    return c
 
-		var n *runtime.Network = nil
-		switch len(networks) {
-		case 1:
-			n = networks[0].NewNetwork(application)
+  default:
+    assert.Unreachable(
+      "Too many ingress container exists in the current context. Possible external tampering.",
+    )
+  }
 
-		default:
-			assert.Unreachable("Network must exists, is created on application start")
-		}
-		assert.NotNil(n, "network must be selected")
+  networks, err := runtime.SelectNetworks(
+    runtime.ObjectTypeLabel(runtime.NetworkObject),
+    runtime.ApplicationNameLabel(state.Metadata.Application),
+  )
+  if err != nil {
+    state.Ingress.Errors.SetIngressError(
+      errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
+    )
+  }
 
-		err = os.MkdirAll(hostNginxControllerMountPath(application), 0777)
+  var n *runtime.Network = nil
+  switch len(networks) {
+  case 1:
+    n = networks[0].NewNetwork(state.Metadata.Application)
 
-		// the file struture must exist before the program -> mout path
-		c, err := runtime.NewContainer(
-			application,
-			runtime.WithImage(state.Ingress.Metadata.Image),
-			runtime.WithPulling(),
-			runtime.WithExposeTcpPort("80", "80"),
-			runtime.WithExposeTcpPort("443", "443"),
-			runtime.WithConnectedToNetwork(n),
-			runtime.WithLabels(
-				runtime.ObjectTypeLabel(runtime.IngressObject),
-				runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
-				runtime.ApplicationNameLabel(application),
-			),
-			runtime.WithMount(hostNginxControllerMountPath(application), nginxcontroller.SocketMountPath),
-		)
-		if err != nil {
-			state.Ingress.Errors.SetIngressError(
-				errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
-			)
-			return nil
-		}
-		container = c
+  default:
+    assert.Unreachable("Network must exists, is created on application start")
+  }
+  assert.NotNil(n, "network must be selected")
 
-		runs := 0
-		for {
-			exists, err := container.ExitsPath(nginxcontroller.NginxPidFilePath)
-			if runs == 3 {
-				state.Ingress.Errors.SetIngressError(
-					errtype.FailedInteractionWithDockerDaemon(errtype.DockerInspectContainer, err),
-				)
-				break
-			}
-			if err != nil {
-				runs += 1
-			}
-			if exists {
-				break
-			}
-			time.Sleep(time.Millisecond * 500)
-		}
-	}
-	assert.NotNil(container, "at this state the container was set correctly")
+  socket := filepath.Join("/run/zeus", state.Metadata.Application, "ingress")
+  err = os.MkdirAll(socket, 0777)
 
-	if ok := validateContainer(container, application, state); !ok {
-		if err := container.Shutdown(); err != nil {
-			state.Ingress.Errors.SetIngressError(
-				errtype.FailedInteractionWithDockerDaemon(errtype.DockerStopContainer, err),
-			)
-		}
-		return nil
-	}
+
+  container, ok := nginxcontroller.CreateContainer(state)
+  if !ok {
+    return nil
+  }
 
 	return container
 }
@@ -161,6 +121,7 @@ func validateContainer(c *runtime.Container, application string, state *record.A
 		return false
 	}
 
+  socket := filepath.Join("/run/zeus", state.Metadata.Application, "ingress")
 	mounts := inspect.Mounts
 	if len(mounts) != 1 {
 		return false
@@ -168,7 +129,7 @@ func validateContainer(c *runtime.Container, application string, state *record.A
 	socketMount := mounts[0]
 	correctSocketMount := container.MountPoint{
 		Type:        mount.TypeBind,
-		Source:      hostNginxControllerMountPath(application),
+		Source:      socket,
 		Destination: nginxcontroller.SocketMountPath,
 		Mode:        "",
 		RW:          true,

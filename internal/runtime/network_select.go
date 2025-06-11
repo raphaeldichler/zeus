@@ -57,3 +57,26 @@ func SelectNetworks(
 
 	return result, nil
 }
+
+func TrySelectOneNetwork(
+  application string,
+  labels ...Label,
+) (*Network, error) {
+  networks, err := SelectNetworks(labels...)
+  if err != nil {
+    return nil, err
+  }
+
+  switch len(networks) {
+  case 0:
+    return nil, nil
+
+  case 1:
+    return networks[0].NewNetwork(application), nil
+
+  default:
+    assert.Unreachable("Network must exists, is created on application start")
+  }
+
+  return nil, nil
+}

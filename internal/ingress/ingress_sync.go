@@ -11,59 +11,32 @@ import (
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
-	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/nginxcontroller"
 	"github.com/raphaeldichler/zeus/internal/record"
-	"github.com/raphaeldichler/zeus/internal/runtime"
 )
 
-const (
-	IngressDaemonName          = "ingress-daemon"
-	IngressContainerDaemonName = "ingress-nginx"
-)
+func Sync(state *record.ApplicationRecord) {
+  log := state.Logger("ingress-daemon")
 
-type IngressDaemon struct {
-	application string
-
-	container   *runtime.Container
-	client      *nginxcontroller.Client
-	certificate CertificateProvider
-
-	log *log.Logger
-}
-
-// Creates a new IngressDaemon which handles the state of the ingress object.
-func NewIngress(application string) *IngressDaemon {
-	logger := log.New(application, IngressDaemonName)
-
-	return &IngressDaemon{
-		application: application,
-		client:      nil,
-		container:   nil,
-		log:         logger,
-	}
-}
-
-func (self *IngressDaemon) Sync(state *record.ApplicationRecord) {
-	self.log.Info("Starting syncing ingress controllers")
-	defer self.log.Info("Completed syncing ingress controllers")
+	log.Info("Starting syncing ingress controllers")
+	defer log.Info("Completed syncing ingress controllers")
 	if !state.Ingress.Enabled() {
 		return
 	}
 
-	if self.container == nil {
-		self.container = SelectOrCreateIngressContainer(state, self.application, self.container)
-		if self.container == nil {
-			return
-		}
+  container := SelectOrCreateIngressContainer(state)
+  if container == nil {
+    return
+  }
 
-		self.client = nginxcontroller.NewClient(self.application, hostNginxControllerSocketPath(self.application))
-		self.certificate = CertificateProviderBuilder(self, state)
-	}
-	assert.NotNil(self.certificate, "on container selection/creation the certifgicate provider must be selected   ")
-	self.certificate.GenerateCertificates(state)
+  client := nginxcontroller.NewClient(
+    state.Metadata.Application, hostNginxControllerSocketPath(state.Metadata.Application),
+  )
+  certificate := CertificateProviderBuilder(state)
+  assert.NotNil(certificate, "on container selection/creation the certifgicate provider must be selected")
+	certificate.GenerateCertificates(state)
 
-	response, err := self.client.SetConfig(self.buildIngressConfigRequest(state))
+	response, err := client.SetConfig(buildIngressConfigRequest(state))
 	if err != nil {
 		state.Ingress.Errors.SetIngressError(
 			errtype.FailedInteractionWithNginxController(errtype.NginxSend, err),
@@ -86,7 +59,7 @@ func (self *IngressDaemon) Sync(state *record.ApplicationRecord) {
 	}
 }
 
-func (self *IngressDaemon) buildIngressConfigRequest(state *record.ApplicationRecord) *nginxcontroller.ApplyRequest {
+func buildIngressConfigRequest(state *record.ApplicationRecord) *nginxcontroller.ApplyRequest {
 	req := nginxcontroller.NewApplyRequest()
 	for _, server := range state.Ingress.Servers {
 		if state.Ingress.Errors.ExistsTlsError(errtype.FailedObtainCertificateQuery(server.Host)) {

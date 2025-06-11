@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/gob"
 
+	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
@@ -54,6 +55,10 @@ func New(app string, deploymentType DeploymentType) *ApplicationRecord {
 			Enabled:     false,
 		},
 	}
+}
+
+func (self *ApplicationRecord) Logger(daemon string) *log.Logger {
+  return log.New(self.Metadata.Application, daemon)
 }
 
 func (self *ApplicationRecord) ToGob() []byte {
