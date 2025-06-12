@@ -41,8 +41,8 @@ func TestIngressContainerSelectAndCreate(t *testing.T) {
 	state.Ingress.Metadata.Name = application
 	state.Ingress.Metadata.CreateTime = time.Now()
 
-  c, ok := SelectOrCreateIngressContainer(&state)
-  assert.True(ok, "must create valid container")
+	c, ok := SelectOrCreateIngressContainer(&state)
+	assert.True(ok, "must create valid container")
 	if !state.Ingress.Errors.NoErrors() {
 		t.Fatalf("wanted to get no errors, but got '%v'", state)
 	}
@@ -51,7 +51,7 @@ func TestIngressContainerSelectAndCreate(t *testing.T) {
 	}
 
 	c1, ok := SelectOrCreateIngressContainer(&state)
-  assert.True(ok, "must create valid container")
+	assert.True(ok, "must create valid container")
 	if !c.Equal(c1) {
 		t.Errorf("reselecting must return same container, but was not")
 	}

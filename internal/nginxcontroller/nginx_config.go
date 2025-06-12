@@ -143,7 +143,7 @@ func (self *IngressRequest) setHTTPLocation(
 		self.Servers = append(self.Servers, httpServer)
 	}
 
-  httpServer.Locations = append(httpServer.Locations, loc)
+	httpServer.Locations = append(httpServer.Locations, loc)
 }
 
 func (self *IngressRequest) deleteHTTPLocation(
@@ -152,11 +152,11 @@ func (self *IngressRequest) deleteHTTPLocation(
 	matching Matching,
 ) *Location {
 	var httpServer *Server = nil
-  var httpServerIdx = -1
+	var httpServerIdx = -1
 	for idx, server := range self.Servers {
 		if server.Domain == domain && server.Tls == nil {
 			httpServer = server
-      httpServerIdx = idx
+			httpServerIdx = idx
 			break
 		}
 	}
@@ -164,17 +164,17 @@ func (self *IngressRequest) deleteHTTPLocation(
 		return nil
 	}
 
-  assert.True(httpServerIdx != -1, "idx must be set correctly")
+	assert.True(httpServerIdx != -1, "idx must be set correctly")
 	for idx, location := range httpServer.Locations {
 		if location.Matching == matching && location.Path == path {
 			httpServer.Locations[idx] = httpServer.Locations[len(httpServer.Locations)-1]
 			httpServer.Locations = httpServer.Locations[:len(httpServer.Locations)-1]
 
-      // if no locations exists anymore it was set via SetHTTPLocation so we remove the server
-      if len(httpServer.Locations) == 0 {
-        self.Servers[idx] = self.Servers[len(httpServer.Locations)-1]
-        self.Servers = self.Servers[:len(self.Servers)-1]
-      }
+			// if no locations exists anymore it was set via SetHTTPLocation so we remove the server
+			if len(httpServer.Locations) == 0 {
+				self.Servers[idx] = self.Servers[len(httpServer.Locations)-1]
+				self.Servers = self.Servers[:len(self.Servers)-1]
+			}
 
 			return location
 		}

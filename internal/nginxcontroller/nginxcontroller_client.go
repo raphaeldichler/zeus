@@ -4,8 +4,8 @@
 package nginxcontroller
 
 import (
-	"time"
 	"path/filepath"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,30 +17,30 @@ const (
 
 type Client struct {
 	NginxControllerClient
-  conn *grpc.ClientConn
+	conn *grpc.ClientConn
 }
 
 func NewClient(
 	application string,
 ) (*Client, error) {
 
-  socket := filepath.Join(HostSocketDirectory(application), "nginx.sock")
+	socket := filepath.Join(HostSocketDirectory(application), "nginx.sock")
 	conn, err := grpc.NewClient(
 		"unix://"+socket,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-  if err != nil {
-    return nil, err
-  }
+	if err != nil {
+		return nil, err
+	}
 
-  client := NewNginxControllerClient(conn)
+	client := NewNginxControllerClient(conn)
 
-  return &Client{
-    NginxControllerClient: client,
-    conn: conn,
-  }, nil
+	return &Client{
+		NginxControllerClient: client,
+		conn:                  conn,
+	}, nil
 }
 
 func (self *Client) CLose() error {
-  return self.conn.Close()
+	return self.conn.Close()
 }

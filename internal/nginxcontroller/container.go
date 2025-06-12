@@ -19,10 +19,10 @@ import (
 
 var nginxRunningCheckBackoff = time.Millisecond * 500
 
-// Returns the directory which is be used to store the socket for IPC 
+// Returns the directory which is be used to store the socket for IPC
 // between the container and the application.
 func HostSocketDirectory(application string) string {
-  return filepath.Join("run", "zeus", application, "ingress")
+	return filepath.Join("run", "zeus", application, "ingress")
 }
 
 // Creates an Ingress container which will be conntected to the network.
@@ -41,7 +41,7 @@ func CreateContainer(state *record.ApplicationRecord) (container *runtime.Contai
 		)
 	}
 	assert.NotNil(network, "Network must exists, is created on application start")
-  fmt.Println(network)
+	fmt.Println(network)
 
 	container, err = runtime.NewContainer(
 		state.Metadata.Application,

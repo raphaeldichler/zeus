@@ -3,7 +3,6 @@
 
 package zeusctl
 
-
 /*
 ZEUS_CONFIG=~/.zeus/config.yml
 --config=config.yml
@@ -29,4 +28,3 @@ zeus takes the enabled application and applies the state.
 [ remove old application | apply ingress | apply service | apply
 
 */
-
