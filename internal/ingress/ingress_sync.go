@@ -4,10 +4,9 @@
 package ingress
 
 import (
+	"context"
 	"encoding/base64"
-	"errors"
-	"io"
-	"net/http"
+	"time"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
@@ -24,39 +23,48 @@ func Sync(state *record.ApplicationRecord) {
 		return
 	}
 
-	container := SelectOrCreateIngressContainer(state)
-	if container == nil {
+	container, ok := SelectOrCreateIngressContainer(state)
+	if !ok {
 		return
 	}
+	assert.NotNil(container, "ok result must return valid container")
 
-	client := nginxcontroller.NewClient(
-		state.Metadata.Application, hostNginxControllerSocketPath(state.Metadata.Application),
-	)
-	certificate := CertificateProviderBuilder(state)
-	assert.NotNil(certificate, "on container selection/creation the certifgicate provider must be selected")
-	certificate.GenerateCertificates(state)
-
-	response, err := client.SetConfig(buildIngressConfigRequest(state))
+	client, err := nginxcontroller.NewClient(state.Metadata.Application)
 	if err != nil {
 		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithNginxController(errtype.NginxSend, err),
+			errtype.FailedInteractionWithNginxController(errtype.NginxClientConnection, err),
 		)
 		return
 	}
-	defer response.Body.Close()
-	assert.True(
-		response.StatusCode == http.StatusCreated || response.StatusCode == http.StatusInternalServerError,
-		"a request cannot result in a bad request or any other problems",
-	)
 
-	if response.StatusCode == http.StatusInternalServerError {
-		body, _ := io.ReadAll(response.Body)
-		err = errors.New(string(body))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithNginxController(errtype.NginxApply, err),
+	_, err = client.GenerateCertificates(ctx, nil)
+
+	/*
+		response, err := client.SetConfig(buildIngressConfigRequest(state))
+		if err != nil {
+			state.Ingress.Errors.SetIngressError(
+				errtype.FailedInteractionWithNginxController(errtype.NginxSend, err),
+			)
+			return
+		}
+		defer response.Body.Close()
+		assert.True(
+			response.StatusCode == http.StatusCreated || response.StatusCode == http.StatusInternalServerError,
+			"a request cannot result in a bad request or any other problems",
 		)
-	}
+
+		if response.StatusCode == http.StatusInternalServerError {
+			body, _ := io.ReadAll(response.Body)
+			err = errors.New(string(body))
+
+			state.Ingress.Errors.SetIngressError(
+				errtype.FailedInteractionWithNginxController(errtype.NginxApply, err),
+			)
+		}
+	*/
 }
 
 func buildIngressConfigRequest(state *record.ApplicationRecord) *nginxcontroller.ApplyRequest {

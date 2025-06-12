@@ -111,14 +111,19 @@ func buildCertificatResponse(state *record.ApplicationRecord) []CertificateInspe
 // otherwise no error will occre.
 // if an error occure while reading container information an error response will be written
 // into the writer
-func (self *IngressDaemon) Inspect(state *record.ApplicationRecord, w io.Writer) error {
+func Inspect(state *record.ApplicationRecord, w io.Writer) error {
 	ingress := state.Ingress
 	if !ingress.Enabled() {
 		// error response -
 		return nil
 	}
 
-	inspect, err := self.container.Inspect()
+	container, ok := SelectIngressContainer(state)
+	if !ok {
+		return nil
+	}
+
+	inspect, err := container.Inspect()
 	if err != nil {
 		// error response -
 		return nil

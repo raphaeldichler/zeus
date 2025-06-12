@@ -4,16 +4,11 @@
 package nginxcontroller
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"net"
-	"net/http"
 	"time"
 	"path/filepath"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/raphaeldichler/zeus/internal/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -21,85 +16,31 @@ const (
 )
 
 type Client struct {
-	client *http.Client
-	log    *log.Logger
+	NginxControllerClient
+  conn *grpc.ClientConn
 }
 
 func NewClient(
 	application string,
-) *Client {
-	logger := log.New(
-		application, "nginx-controller-client",
+) (*Client, error) {
+
+  socket := filepath.Join(HostSocketDirectory(application), "nginx.sock")
+	conn, err := grpc.NewClient(
+		"unix://"+socket,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+  if err != nil {
+    return nil, err
+  }
 
-  socket := filepath.Join("/run/zeus", application, "ingress", "nginx.sock")
-	dialer := func(_ context.Context, _ string, _ string) (net.Conn, error) {
-		return net.Dial("unix", socket)
-	}
+  client := NewNginxControllerClient(conn)
 
-	client := &http.Client{
-		Transport: &http.Transport{DialContext: dialer},
-		Timeout:   DefaultClientTimeout,
-	}
-
-	return &Client{
-		client: client,
-		log:    logger,
-	}
+  return &Client{
+    NginxControllerClient: client,
+    conn: conn,
+  }, nil
 }
 
-func (self *Client) SetAcme(
-	domain string,
-	token string,
-	keyAuth string,
-) (*http.Response, error) {
-	request := AcmeCreateRequest{
-		Domain:  domain,
-		Token:   token,
-		KeyAuth: keyAuth,
-	}
-
-	b, err := json.Marshal(request)
-	assert.ErrNil(err)
-	body := bytes.NewReader(b)
-
-	req, err := http.NewRequest("POST", SetAcmeAPIPath, body)
-	assert.ErrNil(err)
-	req.Header.Set("content-type", "application/json")
-
-	return self.client.Do(req)
-}
-
-func (self *Client) DeleteAcme(
-	domain string,
-	token string,
-) (*http.Response, error) {
-	request := AcmeDeleteRequest{
-		Domain: domain,
-		Token:  token,
-	}
-
-	b, err := json.Marshal(request)
-	assert.ErrNil(err)
-	body := bytes.NewReader(b)
-
-	req, err := http.NewRequest("DELETE", DeleteAcmeAPIPath, body)
-	assert.ErrNil(err)
-	req.Header.Set("content-type", "application/json")
-
-	return self.client.Do(req)
-}
-
-func (self *Client) SetConfig(
-	request *ApplyRequest,
-) (*http.Response, error) {
-	b, err := json.Marshal(request)
-	assert.ErrNil(err)
-	body := bytes.NewReader(b)
-
-	req, err := http.NewRequest("POST", "http://unix"+ApplyAPIPath, body)
-	assert.ErrNil(err)
-	req.Header.Set("content-type", "application/json")
-
-	return self.client.Do(req)
+func (self *Client) CLose() error {
+  return self.conn.Close()
 }

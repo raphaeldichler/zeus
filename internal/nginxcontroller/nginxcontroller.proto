@@ -6,23 +6,14 @@ syntax = "proto3";
 package zeus.nginxcontroller;
 option go_package = "github.com/raphaeldichler/zeus/internal/nginxcontroller";
 
-message AcmeCreateRequest {
-  string Domain = 1;
-  string Token = 2;
-  string KeyAuth = 3;
+message IngressRequest {
+  repeated string GeneralEntries = 1;
+  repeated string EventEntries = 2;
+  repeated string HttpEntries = 3;
+  repeated Server Servers = 4;
 }
-message AcmeCreateResponse {}
 
-message AcmeDeleteRequest {
-  string Domain = 1;
-  string Token = 2;
-}
-message AcmeDeleteResponse {}
-
-message IngressConfigRequest {
-  repeated Server Servers = 1;
-}
-message IngressConfigResponse {}
+message IngressResponse {}
 
 enum Matching {
   Prefix = 0;
@@ -32,7 +23,7 @@ enum Matching {
 message Location {
   string Path = 1;
   Matching Matching = 2;
-  string ServiceEndpoint = 3;
+  repeated string Entries = 3;
 }
 
 message TLS {
@@ -42,17 +33,31 @@ message TLS {
 
 message Server {
   string Domain = 1;
-  bool IPv6Enabled = 2;
-  optional TLS Tls = 3;
+  optional TLS Tls = 2;
+  repeated string Entries = 3;
   repeated Location Locations = 4;
 }
 
+message GenerateCertificateRequest {
+  GenerateCertificateType Type = 1;
+  string CertificateEmail = 2;
+  string Domain = 3;
+}
+
+message GenerateCertificateResponse {
+  string Fullchain = 1;
+  string Privkey = 2;
+}
+
+enum GenerateCertificateType {
+  AuthoritySigned = 0;
+  SelfSigned = 1;
+}
+
 service NginxController {
-
-  rpc SetAcmeChallenge(AcmeCreateRequest) returns (AcmeCreateResponse) {}
-
-  rpc DeleteAcmeChallenge(AcmeDeleteRequest) returns (AcmeDeleteRequest) {}
   
-  rpc SetIngressConfig(IngressConfigRequest) returns (IngressConfigResponse) {}
+  rpc SetIngressConfig(IngressRequest) returns (IngressResponse) {}
+
+  rpc GenerateCertificates(GenerateCertificateRequest) returns (GenerateCertificateResponse) {}
 
 }

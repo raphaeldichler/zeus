@@ -3,22 +3,6 @@
 
 package nginxcontroller
 
-import (
-	"encoding/base64"
-	"fmt"
-	"net/http"
-	"time"
-
-	"github.com/raphaeldichler/zeus/internal/assert"
-)
-
-var (
-	matching map[string]MatchingType = map[string]MatchingType{
-		"exact":  ExactMatching,
-		"prefix": PrefixMatching,
-	}
-)
-
 const ApplyAPIPath = "/apply"
 
 type ApplyRequest struct {
@@ -110,85 +94,4 @@ type LocationRequest struct {
 type CertificateRequest struct {
 	PrivkeyPem   string `json:"privkeyPem"`
 	FullchainPem string `json:"fullchainPem"`
-}
-
-func ValidateApplyRequest(
-	w http.ResponseWriter,
-	r *http.Request,
-	req ApplyRequest,
-) bool {
-	return true
-}
-
-func (self *CertificateRequest) ToCertificate() *TlsCertificate {
-	fullchainPem, err := base64.StdEncoding.DecodeString(self.FullchainPem)
-	assert.ErrNil(err)
-	privkeyPem, err := base64.StdEncoding.DecodeString(self.PrivkeyPem)
-	assert.ErrNil(err)
-
-	return &TlsCertificate{
-		FullchainFilePath: "",
-		PrivkeyFilePath:   "",
-		Fullchain:         fullchainPem,
-		Privkey:           privkeyPem,
-	}
-}
-
-func (self *Controller) Apply(
-	w http.ResponseWriter,
-	r *http.Request,
-	command *ApplyRequest,
-) {
-	d, err := openDirectory()
-	if err != nil {
-		replyInternalServerError(w, "Failed to open directory to store data. "+err.Error())
-		return
-	}
-	defer time.AfterFunc(time.Minute*1, func() {
-		self.log.Info("Cleanup old context at path '%s'", string(d))
-		d.close()
-	})
-	cfg := NewNginxConfig()
-
-	for _, server := range command.Servers {
-		var tls *TlsCertificate = nil
-		if cert := server.Certificate; cert != nil {
-			tls = cert.ToCertificate()
-		}
-
-		sc := NewServerConfig(
-			server.Domain,
-			server.IPv6Enabled,
-			tls,
-		)
-		for _, loc := range server.Locations {
-			m, ok := matching[loc.Matching]
-			assert.True(ok, "matching type must already be validated")
-
-			lc := NewLocationConfig(
-				loc.Path,
-				m,
-				fmt.Sprintf(`return 200 "%s@%s"`, server.Domain, loc.Path),
-				"add_header Content-Type text/plain",
-				/*
-					  fmt.Sprintf(`proxy_pass %s"`, loc.ServiceEndpoint),
-						"proxy_set_header Host $host",
-						"proxy_set_header X-Real-IP $remote_addr",
-						"proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for",
-						"proxy_set_header X-Forwarded-Proto $scheme",
-				*/
-			)
-
-			sc.SetLocation(lc)
-		}
-
-		cfg.SetServerConfig(sc)
-	}
-
-	if err := self.StoreAndApplyConfig(w, cfg, d); err != nil {
-		return
-	}
-	self.config = cfg
-
-	w.WriteHeader(http.StatusCreated)
 }

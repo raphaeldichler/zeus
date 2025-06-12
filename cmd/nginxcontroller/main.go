@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	server, err := nginxcontroller.NewServer()
+	server, err := nginxcontroller.New()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize the server, got '%s'\n", err.Error())
 		os.Exit(1)

@@ -1,30 +1,39 @@
 // Licensed under the Apache License 2.0. See the LICENSE file for details.
 // Copyright 2025 The Zeus Authors.
 
-package ingress
+package nginxcontroller
 
 import (
+	"context"
 	"fmt"
 	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/record"
+	"github.com/raphaeldichler/zeus/internal/runtime"
 )
 
-func ID() string {
+var image = ""
+
+func id() string {
 	id := rand.IntN(1000000)
 	return fmt.Sprintf("%d", id)
 }
 
-func buildIngressContainer(application string) string {
+func buildIngressContainer(application string) {
 	id := rand.IntN(1000000)
 	root, err := findProjectRoot()
-	image := fmt.Sprintf("%s:%d", application, id)
+	assert.ErrNil(err)
+	imageRef := fmt.Sprintf("%s:%d", application, id)
 	ingressContainerPath := filepath.Join(root, "cmd", "nginxcontroller", "Dockerfile")
 
-	fmt.Printf("[INFO] [%s] Building Docker image: %s\n", application, image)
-	cmd := exec.Command("docker", "build", "--file", ingressContainerPath, "--tag", image, root)
+	fmt.Printf("[INFO] [%s] Building Docker image: %s\n", application, imageRef)
+	cmd := exec.Command("docker", "build", "--file", ingressContainerPath, "--tag", imageRef, root)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[ERROR] [%s] Docker build failed: %v\n", application, err)
@@ -33,7 +42,7 @@ func buildIngressContainer(application string) string {
 	}
 	fmt.Printf("[INFO] [%s] Docker image build succeeded\n", application)
 
-	return image
+	image = imageRef
 }
 
 func findProjectRoot() (string, error) {
@@ -55,6 +64,7 @@ func findProjectRoot() (string, error) {
 }
 
 func TestMain(m *testing.M) {
+	buildIngressContainer("nginx")
 	exitCode := m.Run()
 
 	image := ""
@@ -72,4 +82,44 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(exitCode)
+}
+
+func TestNginxcontroller(t *testing.T) {
+	application := "nginxcontroller-" + id()
+
+	network, err := runtime.CreateNewNetwork(application)
+	assert.ErrNil(err)
+	assert.NotNil(network, "must create network")
+	//defer network.Cleanup()
+
+	state := record.ApplicationRecord{
+		Ingress: record.NewIngressRecord(),
+	}
+	state.Ingress.Metadata.Image = image
+	state.Ingress.Metadata.Name = application
+	state.Ingress.Metadata.CreateTime = time.Now()
+
+	_, ok := CreateContainer(&state)
+	assert.True(ok, "container failed to create")
+	//defer container.Shutdown()
+
+	client, err := NewClient(application)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	resp, err := client.SetIngressConfig(ctx, &IngressRequest{
+		Servers: []*Server{
+			{
+				Domain: "localhost",
+				Locations: []*Location{
+					newLocation(
+						"/",
+						Matching_Prefix,
+						"return 200 'Foo'",
+						"add_header Content-Type text/plain",
+					),
+				},
+			},
+		},
+	})
+	fmt.Println(resp, err)
 }

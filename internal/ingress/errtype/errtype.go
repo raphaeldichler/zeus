@@ -31,6 +31,7 @@ type NginxControllerInteraction int
 const (
 	NginxSend NginxControllerInteraction = iota + 1
 	NginxApply
+	NginxClientConnection
 )
 
 var nginxControllerInteractionMapping map[NginxControllerInteraction]string = map[NginxControllerInteraction]string{
