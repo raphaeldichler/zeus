@@ -58,11 +58,14 @@ func SelectNetworks(
 	return result, nil
 }
 
-func TrySelectOneNetwork(
+func TrySelectApplicationNetwork(
 	application string,
-	labels ...Label,
 ) (*Network, error) {
-	networks, err := SelectNetworks(labels...)
+
+	networks, err := SelectNetworks(
+		ObjectTypeLabel(NetworkObject),
+		ApplicationNameLabel(application),
+	)
 	if err != nil {
 		return nil, err
 	}

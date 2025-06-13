@@ -117,7 +117,7 @@ func (self *Controller) Present(
 		),
 	)
 
-	if err := self.StoreAndApplyConfig(d); err != nil {
+	if err := self.storeAndApplyConfig(d); err != nil {
 		return err
 	}
 
@@ -138,7 +138,7 @@ func (self *Controller) CleanUp(
 	loc := self.config.deleteHTTPLocation(domain, acmeLocationPath(token), Matching_Exact)
 	assert.NotNil(loc, "cleanup must clean a valid location")
 
-	if err := self.StoreAndApplyConfig(d); err != nil {
+	if err := self.storeAndApplyConfig(d); err != nil {
 		self.config.setHTTPLocation(domain, loc)
 		return err
 	}

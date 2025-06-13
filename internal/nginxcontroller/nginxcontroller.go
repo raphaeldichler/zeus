@@ -77,7 +77,7 @@ func (self *Controller) Run() error {
 	return self.server.Serve(self.listener)
 }
 
-func (self *Controller) ReloadNginxConfig() error {
+func (self *Controller) reloadNginxConfig() error {
 	cmd := exec.Command(self.nginx, "-s", "reload")
 	out, err := cmd.CombinedOutput()
 	self.log.Info("Reload nginx config. Got '%s'", string(out))
@@ -85,16 +85,17 @@ func (self *Controller) ReloadNginxConfig() error {
 	return err
 }
 
-func (self *Controller) StoreAndApplyConfig(d directory) error {
+func (self *Controller) storeAndApplyConfig(d directory) error {
 	err := self.config.storeAsNginxConfig(d)
 	if err != nil {
 		return err
 	}
 
-	if err := self.ReloadNginxConfig(); err != nil {
+	if err := self.reloadNginxConfig(); err != nil {
 		return err
 	}
 
+	time.Sleep(time.Millisecond * 500)
 	return nil
 }
 
@@ -110,7 +111,7 @@ func (self *Controller) SetIngressConfig(
 
 	old := self.config
 	self.config = req
-	if err := self.ReloadNginxConfig(); err != nil {
+	if err := self.storeAndApplyConfig(d); err != nil {
 		self.config = old
 		return nil, status.Errorf(codes.Internal, "Failed to load new nginx config: %v", err)
 	}

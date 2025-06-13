@@ -41,6 +41,6 @@ func NewClient(
 	}, nil
 }
 
-func (self *Client) CLose() error {
+func (self *Client) Close() error {
 	return self.conn.Close()
 }

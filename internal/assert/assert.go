@@ -107,7 +107,7 @@ func ErrNil(err error) {
 
 // NotNil asserts that the object `o` is not nil.
 // If it is nil, it panics with the provided `msg`.
-func NotNil(o any, msg string) {
+func NotNil[T any](o *T, msg string) {
 	if o == nil {
 		panic(msg)
 	}

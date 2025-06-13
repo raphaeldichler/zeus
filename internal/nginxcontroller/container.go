@@ -4,7 +4,7 @@
 package nginxcontroller
 
 import (
-	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -17,12 +17,23 @@ import (
 	"github.com/raphaeldichler/zeus/internal/runtime"
 )
 
-var nginxRunningCheckBackoff = time.Millisecond * 500
+
+
+var (
+  nginxRunningCheckBackoff = time.Millisecond * 500
+  hostSocketRoot = "/run"
+)
+
+func init() {
+  if root := os.Getenv("ZEUS_HOST_ROOT"); root != "" {
+    hostSocketRoot = root
+  }
+}
 
 // Returns the directory which is be used to store the socket for IPC
 // between the container and the application.
 func HostSocketDirectory(application string) string {
-	return filepath.Join("run", "zeus", application, "ingress")
+	return filepath.Join(hostSocketRoot, "zeus", application, "ingress")
 }
 
 // Creates an Ingress container which will be conntected to the network.
@@ -30,18 +41,14 @@ func HostSocketDirectory(application string) string {
 // If an error happends the error is written into the state and it returns nil, false. If
 // the container creation succeeds a it returns a container, true.
 func CreateContainer(state *record.ApplicationRecord) (container *runtime.Container, ok bool) {
-	network, err := runtime.TrySelectOneNetwork(
+	network, err := runtime.TrySelectApplicationNetwork(
 		state.Metadata.Application,
-		runtime.ObjectTypeLabel(runtime.NetworkObject),
-		runtime.ApplicationNameLabel(state.Metadata.Application),
 	)
 	if err != nil {
 		state.Ingress.Errors.SetIngressError(
 			errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
 		)
 	}
-	assert.NotNil(network, "Network must exists, is created on application start")
-	fmt.Println(network)
 
 	container, err = runtime.NewContainer(
 		state.Metadata.Application,

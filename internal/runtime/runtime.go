@@ -117,7 +117,7 @@ func createBridgedNetwork(
 		networkName,
 		network.CreateOptions{
 			Labels: map[string]string{
-				"zeus.object.type":      "network",
+				"zeus.object.type":      objectLabelMapping[NetworkObject],
 				"zeus.application.name": application,
 			},
 		},

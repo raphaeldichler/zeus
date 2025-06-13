@@ -6,6 +6,7 @@ package nginxcontroller
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -78,7 +79,9 @@ func (self *IngressRequest) storeAsNginxConfig(d directory) error {
 	w.unintend()
 	w.writeln("}")
 
-	err := os.WriteFile(NginxConfigPath, w.content(), 0600)
+	fmt.Println(string(w.content()))
+
+	err := os.WriteFile(NginxConfigPath, w.content(), 0660)
 	if err != nil {
 		return err
 	}
