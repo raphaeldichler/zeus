@@ -94,7 +94,7 @@ func TestMain(m *testing.M) {
 }
 
 func runNginxcontroller(t *testing.T, state *record.ApplicationRecord) func() {
-  t.Helper()
+	t.Helper()
 
 	state.Metadata.Application = state.Metadata.Application + "-" + id()
 	t.Logf("Run nginxcontroller as application %s", state.Metadata.Application)
@@ -121,7 +121,7 @@ func runNginxcontroller(t *testing.T, state *record.ApplicationRecord) func() {
 }
 
 func assertHTTPRequest(t *testing.T, url string, expectedContent string) {
-  t.Helper()
+	t.Helper()
 	resp, err := http.Get(url)
 	assert.ErrNil(err)
 	defer resp.Body.Close()
@@ -130,17 +130,17 @@ func assertHTTPRequest(t *testing.T, url string, expectedContent string) {
 	assert.ErrNil(err)
 
 	if string(body) != expectedContent {
-    t.Errorf("Failed to set correct value to the location. got '%s', want '%s'. url: %s", string(body), expectedContent, url)
+		t.Errorf("Failed to set correct value to the location. got '%s', want '%s'. url: %s", string(body), expectedContent, url)
 	}
 }
 
 func assertHTTPSGetRequest(
-  t *testing.T,
-  url string, 
-  expectedContent string, 
-  privkey string,
+	t *testing.T,
+	url string,
+	expectedContent string,
+	privkey string,
 ) {
-  t.Helper()
+	t.Helper()
 
 	block, _ := pem.Decode([]byte(privkey))
 	if block == nil || block.Type != "RSA PRIVATE KEY" {
@@ -193,14 +193,14 @@ func assertCertificate(t *testing.T, fullchain string, privkey string) {
 		t.Error("failed to decode certificate PEM")
 	}
 	certParsed, err := x509.ParseCertificate(certBlock.Bytes)
-  assert.ErrNil(err)
+	assert.ErrNil(err)
 
 	keyBlock, _ := pem.Decode([]byte(privkey))
 	if keyBlock == nil {
 		t.Error("failed to decode private key PEM")
 	}
 
-  var privKey interface{}
+	var privKey interface{}
 	if priv, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes); err == nil {
 		privKey = priv
 	} else if priv, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes); err == nil {
@@ -229,10 +229,10 @@ func assertCertificate(t *testing.T, fullchain string, privkey string) {
 		panic("unsupported public key type")
 	}
 
-  if !match {
+	if !match {
 
-    t.Error("Certificate and private key do not match")
-  }
+		t.Error("Certificate and private key do not match")
+	}
 }
 
 func TestNginxcontrollerHTTPServer(t *testing.T) {
@@ -293,7 +293,6 @@ func TestNginxcontrollerHTTPServerPrefixMatching(t *testing.T) {
 	assertHTTPRequest(t, "http://localhost/another-not-defined", "Foo")
 }
 
-
 func TestNginxcontrollerHTTPServerExactMatching(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "exact"
@@ -335,7 +334,7 @@ func TestNginxcontrollerHTTPServerExactMatching(t *testing.T) {
 func TestNginxcontrollerHTTPServerResetting(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "resetting"
-  c := runNginxcontroller(t, state)
+	c := runNginxcontroller(t, state)
 	defer c()
 
 	client, err := NewClient(state.Metadata.Application)
@@ -381,7 +380,7 @@ func TestNginxcontrollerHTTPServerResetting(t *testing.T) {
 func TestNginxcontrollerHTTPServerMultipleLocation(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "locations"
-  c := runNginxcontroller(t, state)
+	c := runNginxcontroller(t, state)
 	defer c()
 
 	client, err := NewClient(state.Metadata.Application)
@@ -416,7 +415,7 @@ func TestNginxcontrollerHTTPServerMultipleLocation(t *testing.T) {
 func TestNginxcontrollerHTTPServerSubdomains(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "locations"
-  c := runNginxcontroller(t, state)
+	c := runNginxcontroller(t, state)
 	defer c()
 
 	client, err := NewClient(state.Metadata.Application)
@@ -453,65 +452,63 @@ func TestNginxcontrollerHTTPServerSubdomains(t *testing.T) {
 	assertHTTPRequest(t, "http://app.localhost", "app.localhost")
 }
 
-
 func TestNginxcontrollerGenerateCertificate(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "locations"
-  c := runNginxcontroller(t, state)
+	c := runNginxcontroller(t, state)
 	defer c()
-
 
 	client, err := NewClient(state.Metadata.Application)
 	assert.ErrNil(err)
 	ctx := context.Background()
-  resp, err := client.GenerateCertificates(ctx, &GenerateCertificateRequest{
-    Type: GenerateCertificateType_SelfSigned,
-    CertificateEmail: "testing@zeus.com",
-    Domain: "localhost",
-  })
+	resp, err := client.GenerateCertificates(ctx, &GenerateCertificateRequest{
+		Type:             GenerateCertificateType_SelfSigned,
+		CertificateEmail: "testing@zeus.com",
+		Domain:           "localhost",
+	})
 	assert.ErrNil(err)
 
-  if resp.Fullchain == "" {
-    t.Errorf("no fullchain was returned")
-  }
-  if resp.Privkey == "" {
-    t.Errorf("no privkey was returned")
-  }
+	if resp.Fullchain == "" {
+		t.Errorf("no fullchain was returned")
+	}
+	if resp.Privkey == "" {
+		t.Errorf("no privkey was returned")
+	}
 
-  assertCertificate(t, resp.Fullchain, resp.Privkey)
+	assertCertificate(t, resp.Fullchain, resp.Privkey)
 }
 
 func TestNginxcontrollerHTTPSServer(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "locations"
-  c := runNginxcontroller(t, state)
+	c := runNginxcontroller(t, state)
 	defer c()
 
 	client, err := NewClient(state.Metadata.Application)
 	assert.ErrNil(err)
 	ctx := context.Background()
-  resp, err := client.GenerateCertificates(ctx, &GenerateCertificateRequest{
-    Type: GenerateCertificateType_SelfSigned,
-    CertificateEmail: "testing@zeus.com",
-    Domain: "localhost",
-  })
+	resp, err := client.GenerateCertificates(ctx, &GenerateCertificateRequest{
+		Type:             GenerateCertificateType_SelfSigned,
+		CertificateEmail: "testing@zeus.com",
+		Domain:           "localhost",
+	})
 	assert.ErrNil(err)
 
-  if resp.Fullchain == "" {
-    t.Errorf("no fullchain was returned")
-  }
-  if resp.Privkey == "" {
-    t.Errorf("no privkey was returned")
-  }
+	if resp.Fullchain == "" {
+		t.Errorf("no fullchain was returned")
+	}
+	if resp.Privkey == "" {
+		t.Errorf("no privkey was returned")
+	}
 
-  _, err = client.SetIngressConfig(ctx, &IngressRequest{
+	_, err = client.SetIngressConfig(ctx, &IngressRequest{
 		Servers: []*Server{
 			{
 				Domain: "localhost",
-        Tls: &TLS{
-          Privkey: resp.Privkey,
-          Fullchain: resp.Fullchain,
-        },
+				Tls: &TLS{
+					Privkey:   resp.Privkey,
+					Fullchain: resp.Fullchain,
+				},
 				Locations: []*Location{
 					newLocation(
 						"/",
@@ -522,44 +519,44 @@ func TestNginxcontrollerHTTPSServer(t *testing.T) {
 				},
 			},
 		},
-  })
-  assert.ErrNil(err)
+	})
+	assert.ErrNil(err)
 
-  assertCertificate(t, resp.Fullchain, resp.Privkey)
-  assertHTTPSGetRequest(t, "https://localhost", "https-content", resp.Privkey)
+	assertCertificate(t, resp.Fullchain, resp.Privkey)
+	assertHTTPSGetRequest(t, "https://localhost", "https-content", resp.Privkey)
 }
 
 func TestNginxcontrollerHTTPSAndHTTPServerOnSameDomain(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "locations"
-  c := runNginxcontroller(t, state)
+	c := runNginxcontroller(t, state)
 	defer c()
 
 	client, err := NewClient(state.Metadata.Application)
 	assert.ErrNil(err)
 	ctx := context.Background()
-  resp, err := client.GenerateCertificates(ctx, &GenerateCertificateRequest{
-    Type: GenerateCertificateType_SelfSigned,
-    CertificateEmail: "testing@zeus.com",
-    Domain: "localhost",
-  })
+	resp, err := client.GenerateCertificates(ctx, &GenerateCertificateRequest{
+		Type:             GenerateCertificateType_SelfSigned,
+		CertificateEmail: "testing@zeus.com",
+		Domain:           "localhost",
+	})
 	assert.ErrNil(err)
 
-  if resp.Fullchain == "" {
-    t.Errorf("no fullchain was returned")
-  }
-  if resp.Privkey == "" {
-    t.Errorf("no privkey was returned")
-  }
+	if resp.Fullchain == "" {
+		t.Errorf("no fullchain was returned")
+	}
+	if resp.Privkey == "" {
+		t.Errorf("no privkey was returned")
+	}
 
-  _, err = client.SetIngressConfig(ctx, &IngressRequest{
+	_, err = client.SetIngressConfig(ctx, &IngressRequest{
 		Servers: []*Server{
 			{
 				Domain: "localhost",
-        Tls: &TLS{
-          Privkey: resp.Privkey,
-          Fullchain: resp.Fullchain,
-        },
+				Tls: &TLS{
+					Privkey:   resp.Privkey,
+					Fullchain: resp.Fullchain,
+				},
 				Locations: []*Location{
 					newLocation(
 						"/",
@@ -581,12 +578,10 @@ func TestNginxcontrollerHTTPSAndHTTPServerOnSameDomain(t *testing.T) {
 				},
 			},
 		},
-  })
-  assert.ErrNil(err)
+	})
+	assert.ErrNil(err)
 
-  assertCertificate(t, resp.Fullchain, resp.Privkey)
-  assertHTTPSGetRequest(t, "https://localhost", "https-content", resp.Privkey)
-  assertHTTPRequest(t, "http://localhost", "http-content")
+	assertCertificate(t, resp.Fullchain, resp.Privkey)
+	assertHTTPSGetRequest(t, "https://localhost", "https-content", resp.Privkey)
+	assertHTTPRequest(t, "http://localhost", "http-content")
 }
-
-

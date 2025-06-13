@@ -17,17 +17,15 @@ import (
 	"github.com/raphaeldichler/zeus/internal/runtime"
 )
 
-
-
 var (
-  nginxRunningCheckBackoff = time.Millisecond * 500
-  hostSocketRoot = "/run"
+	nginxRunningCheckBackoff = time.Millisecond * 500
+	hostSocketRoot           = "/run"
 )
 
 func init() {
-  if root := os.Getenv("ZEUS_HOST_ROOT"); root != "" {
-    hostSocketRoot = root
-  }
+	if root := os.Getenv("ZEUS_HOST_ROOT"); root != "" {
+		hostSocketRoot = root
+	}
 }
 
 // Returns the directory which is be used to store the socket for IPC
