@@ -90,23 +90,22 @@ func TestIngressSync(t *testing.T) {
 	state.Ingress.Metadata.Image = image
 	state.Ingress.Metadata.CreateTime = time.Now()
 
-  state.Ingress.Servers = []*record.ServerRecord{
-    {
-      Host: "localhost",
-      IPv6: false,
-      Tls: nil,
-      HTTP: record.HttpRecord{
-        Paths: []record.PathRecord{
-          {
-            Path: "/",
-            Matching: "prefix",
-            Service: "",
-          },
-        },
-      },
-    },
-  }
-
+	state.Ingress.Servers = []*record.ServerRecord{
+		{
+			Host: "localhost",
+			IPv6: false,
+			Tls:  nil,
+			HTTP: record.HttpRecord{
+				Paths: []record.PathRecord{
+					{
+						Path:     "/",
+						Matching: "prefix",
+						Service:  "",
+					},
+				},
+			},
+		},
+	}
 
 	network, err := runtime.CreateNewNetwork(state.Metadata.Application)
 	assert.ErrNil(err)
@@ -116,5 +115,5 @@ func TestIngressSync(t *testing.T) {
 	err = os.MkdirAll(socketPath, 0777)
 	assert.ErrNil(err)
 
-  Sync(state)
+	Sync(state)
 }

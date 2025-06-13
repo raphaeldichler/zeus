@@ -15,7 +15,7 @@ type IngressRequestBuilder struct {
 }
 
 type ServerRequestBuilder struct {
-	request   *Server
+	request *Server
 }
 
 func NewIngressRequestBuilder() *IngressRequestBuilder {
