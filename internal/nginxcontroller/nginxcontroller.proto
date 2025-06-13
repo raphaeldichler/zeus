@@ -36,6 +36,7 @@ message Server {
   optional TLS Tls = 2;
   repeated string Entries = 3;
   repeated Location Locations = 4;
+  bool IPv6 = 5;
 }
 
 message GenerateCertificateRequest {

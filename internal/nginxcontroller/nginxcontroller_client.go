@@ -23,7 +23,6 @@ type Client struct {
 func NewClient(
 	application string,
 ) (*Client, error) {
-
 	socket := filepath.Join(HostSocketDirectory(application), "nginx.sock")
 	conn, err := grpc.NewClient(
 		"unix://"+socket,

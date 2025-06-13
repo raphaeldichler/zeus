@@ -34,7 +34,7 @@ func id() string {
 	return fmt.Sprintf("%d", id)
 }
 
-func buildIngressContainer(application string) {
+func buildIngressContainer(application string) string {
 	id := rand.IntN(1000000)
 	root, err := findProjectRoot()
 	assert.ErrNil(err)
@@ -51,7 +51,7 @@ func buildIngressContainer(application string) {
 	}
 	fmt.Printf("[INFO] [%s] Docker image build succeeded\n", application)
 
-	image = imageRef
+	return imageRef
 }
 
 func findProjectRoot() (string, error) {
@@ -73,10 +73,9 @@ func findProjectRoot() (string, error) {
 }
 
 func TestMain(m *testing.M) {
-	buildIngressContainer("nginx")
+	image = buildIngressContainer("nginx")
 	exitCode := m.Run()
 
-	image := ""
 	if os.Getenv("TEST_DOCKER_CLEANUP") == "1" {
 		fmt.Printf("[INFO] Cleaning up Docker image: %s\n", image)
 		cmd := exec.Command("docker", "image", "rm", "--force", image)
@@ -200,7 +199,7 @@ func assertCertificate(t *testing.T, fullchain string, privkey string) {
 		t.Error("failed to decode private key PEM")
 	}
 
-	var privKey interface{}
+	var privKey any
 	if priv, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes); err == nil {
 		privKey = priv
 	} else if priv, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes); err == nil {
@@ -529,8 +528,7 @@ func TestNginxcontrollerHTTPSServer(t *testing.T) {
 func TestNginxcontrollerHTTPSAndHTTPServerOnSameDomain(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "locations"
-	c := runNginxcontroller(t, state)
-	defer c()
+	runNginxcontroller(t, state)
 
 	client, err := NewClient(state.Metadata.Application)
 	assert.ErrNil(err)

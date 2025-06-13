@@ -189,13 +189,20 @@ func (self *IngressRequest) deleteHTTPLocation(
 func (self *Server) write(d directory, w *ConfigBuilder) error {
 	w.writeln("server {")
 	w.intend()
-	tls := self.Tls
 
+	tls := self.Tls
+	listenIPv6 := "listen [::]80;"
 	listen := "listen 80;"
 	if tls != nil {
+		listenIPv6 = "listen [::]:443 ssl;"
 		listen = "listen 443 ssl;"
 	}
+
 	w.writeln(listen)
+	if self.IPv6 {
+		w.writeln(listenIPv6)
+	}
+
 	w.writeln("server_name ", self.Domain, ";")
 
 	for _, entry := range self.Entries {
@@ -205,7 +212,7 @@ func (self *Server) write(d directory, w *ConfigBuilder) error {
 		w.writeln(entry, ";")
 	}
 
-	if tls := self.Tls; tls != nil {
+	if tls != nil {
 		fullchainPath, err := d.storeFile("pem", []byte(tls.Fullchain))
 		if err != nil {
 			return err
