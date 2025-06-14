@@ -5,7 +5,6 @@ package zeusapiserver
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -127,6 +126,34 @@ func (self *RecordCollection) get(app application) (*record.ApplicationRecord, e
 	return appRecord, nil
 }
 
+// Only returns an error if getting the records fails. if no application is enabled nil will be returned.
+func (self *RecordCollection) getEnabledApplication() *record.ApplicationRecord {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	var appRecord *record.ApplicationRecord = nil
+	err := self.db.View(func(tx *bbolt.Tx) error {
+		return tx.ForEach(func(name []byte, b *bbolt.Bucket) error {
+			recordBytes := b.Get(RecordKey)
+			assert.NotNil(b, "application must have a record entry")
+
+			appRecord := record.FromGob(recordBytes)
+			if appRecord.Metadata.Enabled {
+				recordBytes := b.Get(RecordKey)
+				assert.NotNil(b, "application must have a record entry")
+				appRecord = record.FromGob(recordBytes)
+
+				return nil
+			}
+
+			return nil
+		})
+	})
+	assert.ErrNil(err)
+
+	return appRecord
+}
+
 // Error nil if app is enabled. Error == ErrApplicationEnabled one applicaiton already enabled
 // Error == ErrBucketNotFound no applicaiton with this name
 func (self *RecordCollection) enableIfNonElse(app application) error {
@@ -135,13 +162,11 @@ func (self *RecordCollection) enableIfNonElse(app application) error {
 
 	err := self.db.Update(func(tx *bbolt.Tx) error {
 		err := tx.ForEach(func(name []byte, b *bbolt.Bucket) error {
-			fmt.Println("foreach ", string(name))
 			recordBytes := b.Get(RecordKey)
 			assert.NotNil(b, "application must have a record entry")
 
 			appRecord := record.FromGob(recordBytes)
 			if appRecord.Metadata.Enabled {
-				fmt.Println("stop")
 				return ErrStopIteration
 			}
 
@@ -207,7 +232,8 @@ func (self *RecordCollection) all() []*record.ApplicationRecord {
 // Runs a transaction which first reads the record than performance action on it and after that its stored again.
 // Its ensured that druing this transaction no other thread can interact with the data.
 //
-// Only returns an ErrBucketNotFound error if the defined app doesnt exists or the error which f returns.
+// Only returns an ErrBucketNotFound error if the defined app doesnt exists.
+// If the function returns an error the transaction is rolled back and the error is returned.
 func (self *RecordCollection) tx(app application, f func(rec *record.ApplicationRecord) error) error {
 	self.mu.Lock()
 	defer self.mu.Unlock()

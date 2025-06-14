@@ -83,3 +83,28 @@ func TrySelectApplicationNetwork(
 
 	return nil, nil
 }
+
+func SelectAllNonApplicationNetworks(
+	application string,
+) ([]*Network, error) {
+	ctx := context.Background()
+	args := filters.NewArgs(filters.Arg("label", labelApplicationName))
+	networks, err := c.NetworkList(ctx, network.ListOptions{
+		Filters: args,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*Network = nil
+	for _, nw := range networks {
+		application := nw.Labels[labelApplicationName]
+
+		selected := &SelectedNetwork{name: nw.Name, id: nw.ID}
+		network := selected.NewNetwork(application)
+
+		result = append(result, network)
+	}
+
+	return result, nil
+}

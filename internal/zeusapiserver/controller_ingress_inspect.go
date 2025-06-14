@@ -22,15 +22,6 @@ func GetIngressInspectRequestDecoder(
 	return nil
 }
 
-func (self *ZeusController) GetIngressInspectRequestValidation(
-	w http.ResponseWriter,
-	r *http.Request,
-	out IngressInspectRequest,
-) bool {
-
-	return true
-}
-
 func (self *ZeusController) GetIngressInspect(
 	w http.ResponseWriter,
 	r *http.Request,

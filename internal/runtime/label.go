@@ -17,6 +17,12 @@ const (
 	NetworkObject
 )
 
+const (
+	labelObjectType      = "zeus.object.type"
+	labelObjectImage     = "zeus.object.image"
+	labelApplicationName = "zeus.application.name"
+)
+
 var objectLabelMapping map[ObjectLabel]string = map[ObjectLabel]string{
 	IngressObject: "ingress",
 	NetworkObject: "network",
@@ -27,15 +33,15 @@ func ObjectTypeLabel(object ObjectLabel) Label {
 	e, ok := objectLabelMapping[object]
 	assert.True(ok, "object label must exists")
 
-	return Label{key: "zeus.object.type", value: e}
+	return Label{key: labelObjectType, value: e}
 }
 
 // zeus.object.image={image}
 func ObjectImageLabel(image string) Label {
-	return Label{key: "zeus.object.image", value: image}
+	return Label{key: labelObjectImage, value: image}
 }
 
 // zeus.application.name={name}
 func ApplicationNameLabel(name string) Label {
-	return Label{key: "zeus.application.name", value: name}
+	return Label{key: labelApplicationName, value: name}
 }

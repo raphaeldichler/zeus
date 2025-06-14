@@ -97,3 +97,31 @@ func TrySelectOneContainer(
 
 	return nil, nil
 }
+
+func SelectAllNonApplicationContainers(
+	application string,
+) ([]*Container, error) {
+	ctx := context.Background()
+	args := filters.NewArgs(filters.Arg("label", labelApplicationName))
+	containers, err := c.ContainerList(ctx, container.ListOptions{
+		Filters: args,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*Container = nil
+	for _, cont := range containers {
+		application := cont.Labels[labelApplicationName]
+
+		selected := &SelectedContainer{id: cont.ID}
+		c, err := selected.NewContainer(application)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, c)
+	}
+
+	return result, nil
+}

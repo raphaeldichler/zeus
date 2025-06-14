@@ -1,25 +1,21 @@
 {
-  "errors": {
-    "ingress": [
-      {
-        "type": "FailedInteractionWithDockerDaemon",
-        "identifier": "[select|create|inspect]",
-        "message": "err.Error()",
-      }
-      {
-        "type": "FailedInteractionWithNginxController", 
-        "identifier": "[send|apply]",
-        "message": "err.Error()",
-      },
-    ]
-    "tls": [
-      {
-        "type": "FailedObtainCertificate",
-        "identifier": "poseidon.com",
-        "message": "err.Error()",
-      },
-    ],
-  },
+  "errors": [
+    {
+      "type": "FailedInteractionWithDockerDaemon",
+      "identifier": "[select|create|inspect]",
+      "message": "err.Error()",
+    },
+    {
+      "type": "FailedInteractionWithNginxController", 
+      "identifier": "[send|apply]",
+      "message": "err.Error()",
+    },
+    {
+      "type": "FailedObtainCertificate",
+      "identifier": "poseidon.com",
+      "message": "err.Error()",
+    },
+  ],
   "metadata": {
     "name": "ingress",
   }

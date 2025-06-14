@@ -13,10 +13,11 @@ import (
 const SocketPath = "/run/zeus/zeusd.sock"
 
 type ZeusController struct {
-	Server *server.HttpServer
+	server *server.HttpServer
 
-	records     *RecordCollection
-	application *ApplicationController
+	records      *RecordCollection
+	application  *ApplicationController
+	orchestrator *orchestrator
 }
 
 func New() (*ZeusController, error) {
@@ -36,11 +37,13 @@ func New() (*ZeusController, error) {
 		return nil, err
 	}
 	applicationController := NewApplication(records)
+	orchestrator := newOrchestrator(records)
 
 	self := &ZeusController{
-		application: applicationController,
+		application:  applicationController,
+		orchestrator: orchestrator,
 	}
-	self.Server = server.New(
+	self.server = server.New(
 		server.WithListener(listen),
 		// applications
 		server.Get(
@@ -78,13 +81,11 @@ func New() (*ZeusController, error) {
 			IngressInspectAPIPath,
 			self.GetIngressInspect,
 			server.WithRequestDecoder(GetIngressInspectRequestDecoder),
-			server.WithRequestValidation(self.GetIngressInspectRequestValidation),
 		),
 		server.Post(
 			IngressApplyAPIPath,
 			self.PostIngressApply,
 			server.WithRequestDecoder(PostIngressApplyRequestDecoder),
-			server.WithRequestValidation(self.PostIngressApplyRequestValidator),
 		),
 	)
 
@@ -93,8 +94,9 @@ func New() (*ZeusController, error) {
 
 func (self *ZeusController) Run() error {
 	defer func() {
+		self.orchestrator.close()
 		self.records.cleanup()
 	}()
 
-	return self.Server.Run()
+	return self.server.Run()
 }

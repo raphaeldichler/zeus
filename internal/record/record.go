@@ -37,7 +37,7 @@ type RecordKey string
 
 type ApplicationRecord struct {
 	Metadata ApplicationMetadata
-	Ingress  RecordIngress
+	Ingress  *RecordIngress
 	Service  RecordService
 }
 
