@@ -37,7 +37,7 @@ var (
 	applicationType string = ""
 )
 
-func applicationCommands(rootCmd *cobra.Command, clientProvider *clientProvider) {
+func applicationCommands(rootCmd *cobra.Command, clientProvider *contextProvider) {
 	createApplication(clientProvider)
 	inspectApplication(clientProvider)
 	deleteApplication(clientProvider)
@@ -46,7 +46,7 @@ func applicationCommands(rootCmd *cobra.Command, clientProvider *clientProvider)
 	rootCmd.AddCommand(application)
 }
 
-func createApplication(clientProvider *clientProvider) {
+func createApplication(clientProvider *contextProvider) {
 	createCmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create application",
@@ -100,7 +100,7 @@ func createApplication(clientProvider *clientProvider) {
 	application.AddCommand(createCmd)
 }
 
-func inspectApplication(clientProvider *clientProvider) {
+func inspectApplication(clientProvider *contextProvider) {
 	inspectCmd := &cobra.Command{
 		Use:   "inspect [applications]",
 		Short: "Inspect application",
@@ -138,7 +138,7 @@ func inspectApplication(clientProvider *clientProvider) {
 	application.AddCommand(inspectCmd)
 }
 
-func deleteApplication(clientProvider *clientProvider) {
+func deleteApplication(clientProvider *contextProvider) {
 	deleteCmd := &cobra.Command{
 		Use:   "delete [applications]",
 		Short: "Delete application",
@@ -178,7 +178,7 @@ func deleteApplication(clientProvider *clientProvider) {
 	application.AddCommand(deleteCmd)
 }
 
-func enableApplication(clientProvider *clientProvider) {
+func enableApplication(clientProvider *contextProvider) {
 	enableCmd := &cobra.Command{
 		Use:   "enable [applications]",
 		Short: "Enable application",
@@ -218,7 +218,7 @@ func enableApplication(clientProvider *clientProvider) {
 	application.AddCommand(enableCmd)
 }
 
-func disableApplication(clientProvider *clientProvider) {
+func disableApplication(clientProvider *contextProvider) {
 	disableCmd := &cobra.Command{
 		Use:   "disable [applications]",
 		Short: "Disable application",

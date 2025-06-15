@@ -19,13 +19,13 @@ var (
 	filePath string
 )
 
-func ingressCommands(rootCmd *cobra.Command, clientProvider *clientProvider) {
+func ingressCommands(rootCmd *cobra.Command, clientProvider *contextProvider) {
 	applyIngress(clientProvider)
 	inspectIngress(clientProvider)
 	rootCmd.AddCommand(ingress)
 }
 
-func applyIngress(clientProvider *clientProvider) {
+func applyIngress(clientProvider *contextProvider) {
 	applyCmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Apply ingress configuration",
@@ -44,7 +44,7 @@ func applyIngress(clientProvider *clientProvider) {
 	ingress.AddCommand(applyCmd)
 }
 
-func inspectIngress(clientProvider *clientProvider) {
+func inspectIngress(clientProvider *contextProvider) {
 	inspectCmd := &cobra.Command{
 		Use:   "inspect",
 		Short: "Inspect ingress configuration",

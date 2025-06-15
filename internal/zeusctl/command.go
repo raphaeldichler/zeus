@@ -18,7 +18,7 @@ const (
   enviornmentNameZeusConfig   string = "ZEUS_CONFIG"
 )
 
-type CommandProvider func(rootCmd *cobra.Command, clientProvider *clientProvider)
+type CommandProvider func(rootCmd *cobra.Command, clientProvider *contextProvider)
 
 var (
 	configPath   string
@@ -62,7 +62,7 @@ func (o *choosableOption) verify(option string) (ok bool) {
 }
 
 func NewCommand() *Command {
-	clientProvider := new(clientProvider)
+	clientProvider := new(contextProvider)
 	rootCmd := &cobra.Command{
 		Use:   "zeus",
 		Short: "Zeus CLI",
