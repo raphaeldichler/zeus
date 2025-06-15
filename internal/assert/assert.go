@@ -59,9 +59,9 @@ func StartsNotWithString(str string, prefix string, msg string) {
 	}
 }
 
-// StartsWith asserts that the string `str` does start with the given `prefix`.
+// StartsWithString asserts that the string `str` does start with the given `prefix`.
 // If it does, the function panics with the provided `msg`.
-func StartsWith(str string, prefix string, msg string) {
+func StartsWithString(str string, prefix string, msg string) {
 	if !strings.HasPrefix(str, prefix) {
 		panic(msg)
 	}
@@ -118,4 +118,10 @@ func In[T comparable](element T, arr []T, msg string) {
 		return
 	}
 	panic(msg)
+}
+
+func NotEmptyString(s string, msg string) {
+	if len(s) == 0 {
+		panic(msg)
+	}
 }

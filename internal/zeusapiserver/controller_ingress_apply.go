@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/raphaeldichler/zeus/internal/record"
@@ -14,6 +15,10 @@ import (
 )
 
 const IngressApplyAPIPath = "/v1.0/applications/{application}/ingress"
+
+func InggressApplyAPIPath(application string) string {
+	return strings.Replace(IngressApplyAPIPath, "{application}", application, 1)
+}
 
 type IngressApplyRequestBody struct {
 	IPv6  bool `json:"ipv6"`

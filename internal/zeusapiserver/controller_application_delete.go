@@ -5,9 +5,18 @@ package zeusapiserver
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
+
+const (
+	deleteApplicationAPIPath     string = "/v1.0/applications/{application}"
+)
+
+func DeleteApplicationAPIPath(application string) string {
+	return strings.Replace(deleteApplicationAPIPath, "{application}", application, 1)
+}
 
 type DeleteApplicationRequest struct {
 	Application application

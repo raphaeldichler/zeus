@@ -6,11 +6,25 @@ package zeusapiserver
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/record"
 	bboltErr "go.etcd.io/bbolt/errors"
 )
+
+const (
+	enableApplicationAPIPath  string = "/v1.0/applications/{application}/enable"
+	disableApplicationAPIPath string = "/v1.0/applications/{application}/disable"
+)
+
+func EnableApplicationAPIPath(applicaiton string) string {
+	return strings.Replace(enableApplicationAPIPath, "{application}", applicaiton, 1)
+}
+
+func DisableApplicationAPIPath(applicaiton string) string {
+	return strings.Replace(disableApplicationAPIPath, "{application}", applicaiton, 1)
+}
 
 type DisableApplicationRequest struct {
 	Application application

@@ -101,4 +101,5 @@ func (self *ApplicationController) InspectApplication(
 		},
 	)
 	assert.ErrNil(err)
+	w.WriteHeader(http.StatusOK)
 }

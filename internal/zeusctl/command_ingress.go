@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -20,29 +19,22 @@ var (
 	filePath string
 )
 
-type ClientProvider struct {
-	// Client returns the client. But the client is not initialized until the run command is called by Cobra
-	Client *Client
-}
-
-func IngressCommands(rootCmd *cobra.Command, clientProvider *ClientProvider) {
+func ingressCommands(rootCmd *cobra.Command, clientProvider *clientProvider) {
 	applyIngress(clientProvider)
 	inspectIngress(clientProvider)
 	rootCmd.AddCommand(ingress)
 }
 
-func applyIngress(clientProvider *ClientProvider) {
+func applyIngress(clientProvider *clientProvider) {
 	applyCmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Apply ingress configuration",
 		Run: func(cmd *cobra.Command, args []string) {
 			if filePath == "" {
-				fmt.Println("Error: --file/-f is required")
-				cmd.Usage()
-				os.Exit(1)
+				failCommand(cmd, "--file/-f is required")
 			}
 			fmt.Printf("Applying ingress from file: %s\n", filePath)
-			fmt.Println("Applying ingress", clientProvider.Client.application)
+			fmt.Println("Applying ingress", clientProvider.client.application)
 		},
 	}
 
@@ -52,14 +44,14 @@ func applyIngress(clientProvider *ClientProvider) {
 	ingress.AddCommand(applyCmd)
 }
 
-func inspectIngress(clientProvider *ClientProvider) {
+func inspectIngress(clientProvider *clientProvider) {
 	inspectCmd := &cobra.Command{
 		Use:   "inspect",
 		Short: "Inspect ingress configuration",
 		Run: func(cmd *cobra.Command, args []string) {
-			client := clientProvider.Client.http
+			client := clientProvider.client.http
 
-			fmt.Println("Inspecting ingress", clientProvider.Client.application)
+			fmt.Println("Inspecting ingress", clientProvider.client.application)
 
 			req, _ := http.NewRequest("GET", "http://unix/hello", nil)
 			resp, err := client.Do(req)

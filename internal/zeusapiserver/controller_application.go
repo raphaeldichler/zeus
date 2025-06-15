@@ -15,13 +15,13 @@ import (
 var RecordKey = []byte("record")
 
 const (
-	EnableApplicationAPIPath     string = "/v1.0/applications/{application}/enable"
-	DisableApplicationAPIPath    string = "/v1.0/applications/{application}/disable"
-	CreateApplicationAPIPath     string = "/v1.0/applications"
-	DeleteApplicationAPIPath     string = "/v1.0/applications/{application}"
-	InspectApplicationAPIPath    string = "/v1.0/applications/{application}"
-	InspectAllApplicationAPIPath string = "/v1.0/applications"
+	inspectApplicationAPIPath    string = "/v1.0/applications/{application}"
+	inspectAllApplicationAPIPath string = "/v1.0/applications"
 )
+
+func InspectAllApplicationAPIPath() string {
+	return inspectAllApplicationAPIPath
+}
 
 type ApplicationController struct {
 	records *RecordCollection

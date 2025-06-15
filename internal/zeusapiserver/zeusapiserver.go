@@ -47,32 +47,32 @@ func New() (*ZeusController, error) {
 		server.WithListener(listen),
 		// applications
 		server.Get(
-			InspectAllApplicationAPIPath,
+			inspectAllApplicationAPIPath,
 			applicationController.InspectAllApplication,
 			server.WithRequestDecoder(applicationController.DecoderInspectAllApplicationRequest),
 		),
 		server.Get(
-			InspectApplicationAPIPath,
+			inspectApplicationAPIPath,
 			applicationController.InspectApplication,
 			server.WithRequestDecoder(applicationController.DecoderInspectApplicationRequest),
 		),
 		server.Post(
-			CreateApplicationAPIPath,
+			createApplicationAPIPath,
 			applicationController.CreateApplication,
 			server.WithRequestDecoder(applicationController.DecoderCreateApplicationRequest),
 		),
 		server.Delete(
-			DeleteApplicationAPIPath,
+			deleteApplicationAPIPath,
 			applicationController.DeleteApplication,
 			server.WithRequestDecoder(applicationController.DecoderDeleteApplicationRequest),
 		),
 		server.Post(
-			EnableApplicationAPIPath,
+			enableApplicationAPIPath,
 			applicationController.EnableApplication,
 			server.WithRequestDecoder(applicationController.DecoderEnableApplicationRequest),
 		),
 		server.Post(
-			DisableApplicationAPIPath,
+			disableApplicationAPIPath,
 			applicationController.DisableApplication,
 			server.WithRequestDecoder(applicationController.DecoderDisableApplicationRequest),
 		),

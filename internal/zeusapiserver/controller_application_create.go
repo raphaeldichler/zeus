@@ -4,8 +4,10 @@
 package zeusapiserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"unicode"
@@ -14,7 +16,15 @@ import (
 	"github.com/raphaeldichler/zeus/internal/record"
 )
 
-var ErrBadRequestApplication = errors.New("bad request")
+var ErrBadRequestApplication = errors.New("bad request: application")
+
+const (
+	createApplicationAPIPath     string = "/v1.0/applications"
+)
+
+func CreateApplicationAPIPath() string {
+	return createApplicationAPIPath
+}
 
 type CreateApplicationRequest struct {
 	Application    application
@@ -24,6 +34,21 @@ type CreateApplicationRequest struct {
 type JsonCreateApplicationRequest struct {
 	Application    string `json:"application"`
 	DeploymentType string `json:"deploymentType"`
+}
+
+func NewCreateApplicationRequestAsJsonBody(
+  application string,
+  deploymentType string,
+) io.Reader {
+  data := &JsonCreateApplicationRequest{
+		Application:    application,
+		DeploymentType: deploymentType,
+	}
+
+  jsonData, err := json.Marshal(data)
+  assert.ErrNil(err)
+
+  return bytes.NewReader(jsonData)
 }
 
 func isLetter(s string) bool {
@@ -88,6 +113,6 @@ func (self *ApplicationController) CreateApplication(
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set(
 		"Location",
-		strings.Replace(InspectApplicationAPIPath, "{application}", app, 1),
+		strings.Replace(inspectApplicationAPIPath, "{application}", app, 1),
 	)
 }

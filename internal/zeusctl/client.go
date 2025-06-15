@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/raphaeldichler/zeus/internal/assert"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v3"
 )
@@ -20,6 +21,11 @@ const (
 	httpTimeout      = 5 * time.Second
 	unixServerSocket = "/run/zeus/zeusd.sock"
 )
+
+type contextProvider struct {
+	// client returns the client. But the client is not initialized until the run command is called by Cobra
+	client *client
+}
 
 type ConfigLocalhost struct {
 	Enabled bool `yaml:"enabled"`
@@ -76,7 +82,7 @@ func (c *Config) localUnixDialer() (*http.Transport, error) {
 	}, nil
 }
 
-func LoadConfig(path string) (*Config, error) {
+func loadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -97,7 +103,7 @@ func LoadConfig(path string) (*Config, error) {
 	return cfg, nil
 }
 
-func (c *Config) NewClient() (*Client, error) {
+func (c *Config) newClient() (*client, error) {
 	var (
 		transporter *http.Transport = nil
 		err         error           = nil
@@ -115,7 +121,7 @@ func (c *Config) NewClient() (*Client, error) {
 		}
 	}
 
-	return &Client{
+	return &client{
 		http: &http.Client{
 			Transport: transporter,
 			Timeout:   httpTimeout,
@@ -124,7 +130,12 @@ func (c *Config) NewClient() (*Client, error) {
 	}, nil
 }
 
-type Client struct {
+type client struct {
 	http        *http.Client
 	application string
+}
+
+func unixURL(path string) string {
+	assert.StartsWithString(path, "/", "path must start with '/'")
+	return fmt.Sprintf("http://unix%s", path)
 }

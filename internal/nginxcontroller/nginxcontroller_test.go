@@ -528,7 +528,8 @@ func TestNginxcontrollerHTTPSServer(t *testing.T) {
 func TestNginxcontrollerHTTPSAndHTTPServerOnSameDomain(t *testing.T) {
 	state := &record.ApplicationRecord{}
 	state.Metadata.Application = "locations"
-	runNginxcontroller(t, state)
+	c := runNginxcontroller(t, state)
+	defer c()
 
 	client, err := NewClient(state.Metadata.Application)
 	assert.ErrNil(err)
