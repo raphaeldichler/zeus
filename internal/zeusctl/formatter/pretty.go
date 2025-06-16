@@ -1,4 +1,7 @@
-package main
+// Copyright 2025 The Zeus Authors.
+// Licensed under the Apache License 2.0. See the LICENSE file for details.
+
+package formatter
 
 import (
 	"fmt"
@@ -9,6 +12,20 @@ import (
 )
 
 const tabWidth = 4
+
+type Pretty struct{}
+
+func NewPrettyFormatter() *Pretty {
+	return &Pretty{}
+}
+
+func (p *Pretty) Marshal(obj any) string {
+	str := strings.Builder{}
+	object := newObjectGroup(0, obj, "")
+	object.Marshall()
+	object.write(&str)
+	return str.String()
+}
 
 type group interface {
 	write(out *strings.Builder)
@@ -260,24 +277,4 @@ func (s *sturctIterator) next() (fieldName string, fieldValue reflect.Value) {
 	s.currentField += 1
 
 	return name, field
-}
-
-type Test struct {
-	Name string
-	List []struct {
-		Name string
-		Age  int
-	}
-}
-
-func main() {
-
-	object := newObjectGroup(0, person, "")
-	object.Marshall()
-
-	sb := strings.Builder{}
-	object.write(&sb)
-	fmt.Println(sb.String())
-
-	//Marshall(person)
 }

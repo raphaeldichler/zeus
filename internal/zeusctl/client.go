@@ -5,13 +5,17 @@ package zeusctl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
+	"github.com/raphaeldichler/zeus/internal/zeusctl/formatter"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v3"
 )
@@ -25,6 +29,9 @@ const (
 type contextProvider struct {
 	// client returns the client. But the client is not initialized until the run command is called by Cobra
 	client *client
+
+	// outputFormatter returns the output formatter. But the output formatter is not initialized until the run command is call
+	outputFormatter formatter.Output
 }
 
 type ConfigLocalhost struct {
@@ -138,4 +145,39 @@ type client struct {
 func unixURL(path string) string {
 	assert.StartsWithString(path, "/", "path must start with '/'")
 	return fmt.Sprintf("http://unix%s", path)
+}
+
+func toObject[T any](r io.ReadCloser) *T {
+	defer r.Close()
+	obj := new(T)
+	err := json.NewDecoder(r).Decode(obj)
+	assert.ErrNil(err)
+	return obj
+}
+
+func toError(resp *http.Response) string {
+  bad := toObject[zeusapiserver.BadRequest](resp.Body)
+	return fmt.Sprintf("Error from server (%s): %s", http.StatusText(resp.StatusCode), bad.Message)
+}
+
+func (c *client) applicationEnabled(application string) string {
+	req, err := http.NewRequest(
+		"POST",
+		unixURL(zeusapiserver.EnableApplicationAPIPath(application)),
+		nil,
+	)
+	assert.ErrNil(err)
+
+	resp, err := c.http.Do(req)
+	failOnError(err, "Request failed: %v", err)
+  switch resp.StatusCode {
+    case http.StatusNoContent:
+      return "Enabled"
+    case http.StatusBadRequest:
+      return toError(resp)
+    default:
+      assert.Unreachable("cover all cases of status code")
+  }
+
+	return "" 
 }

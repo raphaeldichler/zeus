@@ -10,12 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/zeusctl/formatter"
 	"github.com/spf13/cobra"
 )
 
 const (
-  defaultConfigPath string = "~/.zeus/config.yml"
-  enviornmentNameZeusConfig   string = "ZEUS_CONFIG"
+	defaultConfigPath         string = "~/.zeus/config.yml"
+	enviornmentNameZeusConfig string = "ZEUS_CONFIG"
 )
 
 type CommandProvider func(rootCmd *cobra.Command, clientProvider *contextProvider)
@@ -71,6 +73,9 @@ func NewCommand() *Command {
 			if !outputFormats.verify(outputFormat) {
 				failCommand(cmd, "Invalid output format: %v", outputFormat)
 			}
+			formatter, ok := formatter.StringToFormat[outputFormat]
+			assert.True(ok, "formatter must exist")
+			clientProvider.outputFormatter = formatter
 
 			path := defaultConfigPath
 			if zeusConfig := os.Getenv(enviornmentNameZeusConfig); zeusConfig != "" {
@@ -92,15 +97,15 @@ func NewCommand() *Command {
 		},
 	}
 
-  rootCmd.PersistentFlags().StringVar(
-    &configPath, 
-    "config", 
-    "", 
-    fmt.Sprintf("Config file path (default: \"%s\", can also be set via $%s)", defaultConfigPath, enviornmentNameZeusConfig),
-  )
+	rootCmd.PersistentFlags().StringVar(
+		&configPath,
+		"config",
+		"",
+		fmt.Sprintf("Config file path (default: \"%s\", can also be set via $%s)", defaultConfigPath, enviornmentNameZeusConfig),
+	)
 	rootCmd.PersistentFlags().StringVarP(
-    &outputFormat, "output", "o", "pretty", "Output format: json, yaml, or pretty",
-  )
+		&outputFormat, "output", "o", "pretty", "Output format: json, yaml, or pretty",
+	)
 
 	for _, provider := range []CommandProvider{
 		ingressCommands,

@@ -4,10 +4,8 @@
 package zeusctl
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -106,7 +104,11 @@ func inspectApplication(clientProvider *contextProvider) {
 		Short: "Inspect application",
 		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			applicationName = args[0]
+      if len(args) == 0 {
+        applicationName = ""
+      } else {
+        applicationName = args[0]
+      }
 
 			client := clientProvider.client.http
 			assert.NotNil(client, "client must not be nil")
@@ -124,7 +126,12 @@ func inspectApplication(clientProvider *contextProvider) {
 
 			switch resp.StatusCode {
 			case http.StatusOK:
-				fmt.Printf("Inspecting all applications\n%s", FormatJSON(resp.Body))
+        var r zeusapiserver.InspectAllApplicationResponse
+        err := json.NewDecoder(resp.Body).Decode(&r)
+        failOnError(err, "Failed to decode response: %v", err)
+
+				out := clientProvider.outputFormatter.Marshal(r)
+				fmt.Printf("%s", out)
 				return
 			case http.StatusBadRequest:
 				fmt.Printf("Failed to inspect all applications\n%s", FormatJSON(resp.Body))
@@ -187,31 +194,12 @@ func enableApplication(clientProvider *contextProvider) {
 			applicationName = args[0]
 			assert.NotEmptyString(applicationName, "application name must not be empty")
 
-			client := clientProvider.client.http
+			client := clientProvider.client
 			assert.NotNil(client, "client must not be nil")
 
-			req, err := http.NewRequest(
-				"POST",
-				unixURL(zeusapiserver.EnableApplicationAPIPath(applicationName)),
-				nil,
-			)
-			assert.ErrNil(err)
-
-			resp, err := client.Do(req)
-			failOnError(err, "Request failed: %v", err)
-			defer resp.Body.Close()
-
-			switch resp.StatusCode {
-			case http.StatusNoContent:
-				fmt.Printf("Successfully enabled application: %s\n", applicationName)
-				return
-			case http.StatusBadRequest:
-				fmt.Printf("Failed to enable application: %s\n%s", applicationName, FormatJSON(resp.Body))
-				return
-			default:
-				assert.Unreachable("cover all cases of status code")
-			}
-
+      fmt.Println(
+        client.applicationEnabled(applicationName),
+      )
 		},
 	}
 
