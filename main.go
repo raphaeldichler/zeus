@@ -1,210 +1,230 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
-type table struct {
-	headers   []string
-	numCol    int
-	colWidths []int
+const tabWidth = 4
+
+type Brithday struct {
+	Day   int
+	Month string
+	Year  int
 }
 
-func newTable(entries []*object) *table {
-	numCol := entries[0].numEntries()
-	colWidths := make([]int, numCol)
-	headers := make([]string, numCol)
+type Person struct {
+	Name string
+	Age  int
+	City string
+	Cool bool
+	BDay Brithday
+}
 
-	for objName := range entries[0].entries {
-		headers[0] = objName
+type output struct {
+	builder strings.Builder
+}
+
+func (o *output) table(tab any, intend int) {
+	prefix := strings.Repeat(" ", tabWidth*intend)
+	slice := reflect.ValueOf(tab)
+	assert.True(slice.Kind() == reflect.Slice, "we only do slices")
+	var colWidth []int = nil
+	var colNames []string = nil
+	var rows [][]string = nil
+
+	for eleIdx := range slice.Len() {
+		obj := slice.Index(eleIdx)
+		if obj.Kind() == reflect.Ptr {
+			obj = obj.Elem()
+		}
+		numCols := obj.NumField()
+		objType := obj.Type()
+		var row []string = nil
+
+		if colWidth == nil {
+			colWidth = make([]int, numCols)
+			colNames = make([]string, numCols)
+
+			for idxField := range numCols {
+				colNames[idxField] = objType.Field(idxField).Name
+				colWidth[idxField] = len(colNames[idxField]) + tabWidth
+			}
+		}
+
+		assert.True(len(colWidth) == numCols, "all structs must have the same structur")
+		for idxField := range numCols {
+			value := obj.Field(idxField)
+			entry := fmt.Sprintf("%v", value.Interface())
+			row = append(row, entry)
+
+			colWidth[idxField] = max(len(entry)+tabWidth, colWidth[idxField])
+		}
+
+		rows = append(rows, row)
 	}
 
-	for _, e := range entries {
-		i := 0
-		for objName, objValue := range e.entries {
-			longer := max(len(objName), len(objValue))
-			longer += 4 // some extra padding
-			colWidths[i] = max(colWidths[i], longer)
-			i += 1
+	o.builder.WriteString(prefix)
+	for colIdx := range len(colNames) {
+		pad := strings.Repeat(" ", colWidth[colIdx]-len(colNames[colIdx]))
+		o.builder.WriteString(colNames[colIdx])
+		o.builder.WriteString(pad)
+	}
+	o.builder.WriteRune('\n')
+	o.builder.WriteString(prefix)
+
+	for colIdx := range len(colNames) {
+		pad := strings.Repeat(" ", colWidth[colIdx]-len(colNames[colIdx]))
+		dotted := strings.Repeat("-", len(colNames[colIdx]))
+		o.builder.WriteString(dotted)
+		o.builder.WriteString(pad)
+	}
+	o.builder.WriteRune('\n')
+	o.builder.WriteString(prefix)
+
+	for idx, row := range rows {
+		for colIdx := range len(colNames) {
+			val := row[colIdx]
+			pad := strings.Repeat(" ", colWidth[colIdx]-len(val))
+			o.builder.WriteString(val)
+			o.builder.WriteString(pad)
+		}
+		if idx < len(rows)-1 {
+			o.builder.WriteRune('\n')
+			o.builder.WriteString(prefix)
 		}
 	}
-
-	return &table{}
 }
 
-func (t *table) writeHeader(w *strings.Builder) {
-	for i, header := range t.headers {
-		w.WriteString(fmt.Sprintf("%s", header))
-		pad := strings.Repeat(" ", t.colWidths[i]-len(header))
-		w.WriteString(pad)
+type primitiveGroup struct {
+	fieldName  []string
+	fieldValue []string
+}
+
+func newPrimitiveGroup() *primitiveGroup {
+	return &primitiveGroup{}
+}
+
+func (p *primitiveGroup) add(name string, value string) {
+	p.fieldName = append(p.fieldName, name)
+	p.fieldValue = append(p.fieldValue, value)
+}
+
+func (p *primitiveGroup) write(sb *strings.Builder, intend int) {
+	prefix := strings.Repeat(" ", tabWidth*intend)
+	assert.True(len(p.fieldName) == len(p.fieldValue), "both need to have the same length")
+
+	width := tabWidth
+	for _, name := range p.fieldName {
+		width = max(len(name)+tabWidth, width)
 	}
-	w.WriteString("\n")
 
-	for i, header := range t.headers {
-		w.WriteString(strings.Repeat("-", len(header)))
-		pad := strings.Repeat(" ", t.colWidths[i]-len(header))
-		w.WriteString(pad)
+	for idx := range len(p.fieldName) {
+		pad := strings.Repeat(" ", width-len(p.fieldName[idx]))
+		sb.WriteString(prefix)
+		sb.WriteString(p.fieldName[idx])
+		sb.WriteString(pad)
+		sb.WriteString(p.fieldValue[idx])
+		sb.WriteRune('\n')
 	}
 }
 
-type object struct {
-	entries map[string]string
+type objectGroup struct {
+	sturctIterator
+	primitive *primitiveGroup
+	object    *objectGroup
+
+	groups int // some interface
 }
 
-func (o *object) numEntries() int {
-	return len(o.entries)
-}
-
-func newObject(entries map[string]string) *object {
-	return &object{
-		entries: entries,
+func (o *objectGroup) setPrimary() *primitiveGroup {
+	if o.primitive == nil {
+		o.primitive = newPrimitiveGroup()
 	}
-}
-func (o *object) string() string {
-	var out string
-	for k, v := range o.entries {
-		out += fmt.Sprintf("%s: %s\n", k, v)
-	}
-	return out
+
+	return o.primitive
 }
 
-func toTableObject(obj any) *object {
-	switch v := obj.(type) {
-	case map[string]any:
-		m := make(map[string]string)
-		for k, val := range v {
-			m[k] = fmt.Sprintf("%v", val)
+func Marshall(o any) {
+	i := newStructIterator(o)
+	/*
+		obj := reflect.ValueOf(o)
+		assert.True(obj.Kind() == reflect.Struct, "we only do structs")
+		typ := obj.Type()
+	*/
+
+	prim := &primitiveGroup{}
+	for i.hasNext() {
+		switch i.currentKind() {
+		case reflect.Struct:
+			fmt.Println("Struct")
+
+			sb := strings.Builder{}
+			prim.write(&sb, 0)
+			fmt.Println(sb.String())
+			return
+		case reflect.Slice:
+			fmt.Println("Slice")
+			return
+		default:
+			name, field := i.next()
+			prim.add(name, fmt.Sprintf("%v", field.Interface()))
 		}
-		return newObject(m)
 
-	default:
-		assert.Unreachable("table object cannot have recursive structure")
 	}
 
-	return nil
+}
+
+type sturctIterator struct {
+	val          reflect.Value
+	typ          reflect.Type
+	currentField int
+}
+
+func (s *sturctIterator) currentKind() reflect.Kind {
+	return s.typ.Field(s.currentField).Type.Kind()
+}
+
+func newStructIterator(o any) *sturctIterator {
+	obj := reflect.ValueOf(o)
+	typ := obj.Type()
+
+	return &sturctIterator{
+		val:          obj,
+		typ:          typ,
+		currentField: 0,
+	}
+}
+
+func (s *sturctIterator) hasNext() bool {
+	return s.currentField < s.val.NumField()
+}
+
+func (s *sturctIterator) next() (fieldName string, fieldValue reflect.Value) {
+	field := s.val.Field(s.currentField)
+	typField := s.typ.Field(s.currentField)
+	name := typField.Name
+	s.currentField += 1
+
+	return name, field
 }
 
 func main() {
-	jsonStr := `{
-    "name": "Alice",
-    "age": 30,
-    "isActive": true,
-    "address": {
-      "city": "Wonderland",
-      "zipcode": "12345"
-    },
-    "skills": ["Go", "Python", "Docker"],
-    "projects": [
-      {
-        "name": "Project1",
-        "language": "Go"
-      },
-      {
-        "name": "Project2",
-        "language": "Python"
-      }
-    ]
-  }`
-	jsonStr = `{
-    "array": [
-      {
-        "city": "Wonderland",
-        "zipcode": "12345"
-      },
-      {
-        "city": "Wonderland",
-        "zipcode": "12345"
-      }
-    ]
-  }`
-
-	// invalid json: "[1, 2, 3]"
-
-	var obj map[string]any
-	if err := json.Unmarshal([]byte(jsonStr), &obj); err != nil {
-		panic(err)
-	}
-
-	// Walk through the JSON
-	selectType(obj)
-}
-
-func walkTable(table any) {
-	switch v := table.(type) {
-	case []any:
-		entries := make([]*object, len(v))
-		for _, val := range v {
-			obj := toTableObject(val)
-			entries = append(entries, obj)
-		}
-
-		t := newTable(entries)
-		w := strings.Builder{}
-		t.writeHeader(&w)
-
-		fmt.Println(w.String())
-
-	default:
-		fmt.Println("cannot be anything else than array", v)
-	}
-}
-
-func selectType(value any) {
-	switch v := value.(type) {
-	case map[string]any:
-		fmt.Println("object")
-		for k, val := range v {
-			fmt.Printf("Key: %s, Value: %v\n", k, val)
-			selectType(val)
-		}
-	case []any:
-		fmt.Println("array")
-		walkTable(v)
-	default:
-		fmt.Println("primitive")
-		fmt.Printf("Value: %v\n", v)
-	}
-
-}
-
-// walk recursively prints keys and values
-func walk(prefix string, value any) {
-	switch v := value.(type) {
-	case map[string]any:
-
-		fmt.Println("object", v)
-		for k, val := range v {
-
-			fmt.Printf("Key: %s, Value: %v\n", k, val)
-		}
-
-	default:
-		fmt.Println("cannot be anything else than object", v)
+	people := []Person{
+		{Name: "Alice", Age: 30, City: "Paris"},
+		{Name: "Bob", Age: 25, City: "London"},
+		{Name: "Raphael Dichle", Age: 25, City: "London"},
 	}
 
 	/*
-		switch v := value.(type) {
+		o := &output{}
+		o.table(people, 1)
+		fmt.Println(o.builder.String())
+	*/
 
-		case map[string]any:
-			fmt.Println("object")
-			for k, val := range v {
-				fullKey := k
-				if prefix != "" {
-					fullKey = prefix + "." + k
-				}
-				walk(fullKey, val)
-			}
-		case []any:
-			fmt.Println("array")
-			for i, val := range v {
-				walk(fmt.Sprintf("%s[%d]", prefix, i), val)
-			}
-		default:
-			fmt.Println("primitive")
-			fmt.Printf("Key: %s, Value: %v\n", prefix, v)
-		}*/
+	Marshall(people[0])
+
 }
