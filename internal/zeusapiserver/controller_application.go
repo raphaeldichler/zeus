@@ -19,6 +19,10 @@ const (
 	inspectAllApplicationAPIPath string = "/v1.0/applications"
 )
 
+func InspectApplicationAPIPath(application string) string {
+	return strings.Replace(inspectApplicationAPIPath, "{application}", application, 1)
+}
+
 func InspectAllApplicationAPIPath() string {
 	return inspectAllApplicationAPIPath
 }

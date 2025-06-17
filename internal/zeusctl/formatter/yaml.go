@@ -1,15 +1,15 @@
 package formatter
 
 import (
-  "github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/assert"
 
 	"gopkg.in/yaml.v3"
 )
 
 var StringToFormat = map[string]Output{
-  "json": NewJSONFormatter(),
-  "yaml": NewYAMLFormatter(),
-  "pretty": NewPrettyFormatter(),
+	"json":   NewJSONFormatter(),
+	"yaml":   NewYAMLFormatter(),
+	"pretty": NewPrettyFormatter(),
 }
 
 type YAML struct{}

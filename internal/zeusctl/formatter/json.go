@@ -16,8 +16,8 @@ func NewJSONFormatter() *JSON {
 }
 
 func (p *JSON) Marshal(obj any) string {
-    jsonBytes, err := json.MarshalIndent(obj, "", "  ")
-    assert.ErrNil(err)
+	jsonBytes, err := json.MarshalIndent(obj, "", "  ")
+	assert.ErrNil(err)
 
-    return string(jsonBytes)
+	return string(jsonBytes)
 }

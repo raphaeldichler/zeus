@@ -15,7 +15,7 @@ import (
 func failOnError(err error, format string, args ...any) {
 	assert.StartsNotWithString(format, "Error: ", "Error: prefix should not be used")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, format, args...)
+		fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 		os.Exit(1)
 	}
 }
@@ -23,7 +23,7 @@ func failOnError(err error, format string, args ...any) {
 // Prints the error message, then prints the usage message for the command and exits with a non-zero exit code.
 func failCommand(cmd *cobra.Command, format string, args ...any) {
 	assert.StartsNotWithString(format, "Error: ", "Error: prefix should not be used")
-	fmt.Printf("Error: "+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 	cmd.Usage()
 	os.Exit(1)
 }

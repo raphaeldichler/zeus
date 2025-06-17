@@ -19,7 +19,7 @@ import (
 var ErrBadRequestApplication = errors.New("bad request: application")
 
 const (
-	createApplicationAPIPath     string = "/v1.0/applications"
+	createApplicationAPIPath string = "/v1.0/applications"
 )
 
 func CreateApplicationAPIPath() string {
@@ -37,18 +37,18 @@ type JsonCreateApplicationRequest struct {
 }
 
 func NewCreateApplicationRequestAsJsonBody(
-  application string,
-  deploymentType string,
+	application string,
+	deploymentType string,
 ) io.Reader {
-  data := &JsonCreateApplicationRequest{
+	data := &JsonCreateApplicationRequest{
 		Application:    application,
 		DeploymentType: deploymentType,
 	}
 
-  jsonData, err := json.Marshal(data)
-  assert.ErrNil(err)
+	jsonData, err := json.Marshal(data)
+	assert.ErrNil(err)
 
-  return bytes.NewReader(jsonData)
+	return bytes.NewReader(jsonData)
 }
 
 func isLetter(s string) bool {

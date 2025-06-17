@@ -4,10 +4,14 @@
 package zeusctl
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
+	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
 	"github.com/spf13/cobra"
 )
 
@@ -25,16 +29,28 @@ func ingressCommands(rootCmd *cobra.Command, clientProvider *contextProvider) {
 	rootCmd.AddCommand(ingress)
 }
 
+type IngressApplyRequest struct {
+	Version  string `json:"version"`
+	Metadata struct {
+		Name string `json:"name"`
+	} `json:"metadata"`
+	zeusapiserver.IngressApplyRequestBody `json:"ingress"`
+}
+
 func applyIngress(clientProvider *contextProvider) {
 	applyCmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Apply ingress configuration",
 		Run: func(cmd *cobra.Command, args []string) {
-			if filePath == "" {
-				failCommand(cmd, "--file/-f is required")
-			}
-			fmt.Printf("Applying ingress from file: %s\n", filePath)
-			fmt.Println("Applying ingress", clientProvider.client.application)
+			client := clientProvider.client
+			assert.True(filePath != "", "file path must not be empty")
+			content, err := os.ReadFile(filePath)
+			failOnError(err, "Could not read file: %v", err)
+
+			reader := io.NopCloser(bytes.NewReader(content))
+			apply := toObject[IngressApplyRequest](reader)
+
+			fmt.Println(client.ingressApply(apply))
 		},
 	}
 
@@ -49,23 +65,13 @@ func inspectIngress(clientProvider *contextProvider) {
 		Use:   "inspect",
 		Short: "Inspect ingress configuration",
 		Run: func(cmd *cobra.Command, args []string) {
-			client := clientProvider.client.http
-
-			fmt.Println("Inspecting ingress", clientProvider.client.application)
-
-			req, _ := http.NewRequest("GET", "http://unix/hello", nil)
-			resp, err := client.Do(req)
-			if err != nil {
-				fmt.Printf("[%s] Request failed: %v", "inspect", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Printf("[%s] Response: %s", "inspect", body)
-
+			_ = clientProvider.client
 		},
 	}
 
 	ingress.AddCommand(inspectCmd)
+}
+
+func (c *client) ingressApply(req *IngressApplyRequest) string {
+	return ""
 }

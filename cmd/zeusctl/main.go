@@ -11,10 +11,10 @@ import (
 )
 
 func main() {
-  cmd := zeusctl.NewCommand()
+	cmd := zeusctl.NewCommand()
 
-  if err := cmd.Run(); err != nil {
-    fmt.Fprintf(os.Stderr, "Failed to run command, got '%s'\n", err.Error())
-    os.Exit(1)
-  }
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to run command, got '%s'\n", err.Error())
+		os.Exit(1)
+	}
 }

@@ -29,9 +29,6 @@ const (
 type contextProvider struct {
 	// client returns the client. But the client is not initialized until the run command is called by Cobra
 	client *client
-
-	// outputFormatter returns the output formatter. But the output formatter is not initialized until the run command is call
-	outputFormatter formatter.Output
 }
 
 type ConfigLocalhost struct {
@@ -110,7 +107,7 @@ func loadConfig(path string) (*Config, error) {
 	return cfg, nil
 }
 
-func (c *Config) newClient() (*client, error) {
+func (c *Config) newClient(formatter formatter.Output) (*client, error) {
 	var (
 		transporter *http.Transport = nil
 		err         error           = nil
@@ -134,12 +131,14 @@ func (c *Config) newClient() (*client, error) {
 			Timeout:   httpTimeout,
 		},
 		application: c.Application,
+		formatter:   formatter,
 	}, nil
 }
 
 type client struct {
 	http        *http.Client
 	application string
+	formatter   formatter.Output
 }
 
 func unixURL(path string) string {
@@ -156,8 +155,12 @@ func toObject[T any](r io.ReadCloser) *T {
 }
 
 func toError(resp *http.Response) string {
-  bad := toObject[zeusapiserver.BadRequest](resp.Body)
+	bad := toObject[zeusapiserver.BadRequest](resp.Body)
 	return fmt.Sprintf("Error from server (%s): %s", http.StatusText(resp.StatusCode), bad.Message)
+}
+
+func (c *client) toOutput(a any) string {
+	return c.formatter.Marshal(a)
 }
 
 func (c *client) applicationEnabled(application string) string {
@@ -170,14 +173,106 @@ func (c *client) applicationEnabled(application string) string {
 
 	resp, err := c.http.Do(req)
 	failOnError(err, "Request failed: %v", err)
-  switch resp.StatusCode {
-    case http.StatusNoContent:
-      return "Enabled"
-    case http.StatusBadRequest:
-      return toError(resp)
-    default:
-      assert.Unreachable("cover all cases of status code")
-  }
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return "Enabled"
+	case http.StatusBadRequest:
+		return toError(resp)
+	default:
+		assert.Unreachable("cover all cases of status code")
+	}
 
-	return "" 
+	return ""
+}
+
+func (c *client) applicationDisabled(application string) string {
+	req, err := http.NewRequest(
+		"POST",
+		unixURL(zeusapiserver.DisableApplicationAPIPath(application)),
+		nil,
+	)
+	assert.ErrNil(err)
+
+	resp, err := c.http.Do(req)
+	failOnError(err, "Request failed: %v", err)
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return "Disabled"
+	case http.StatusBadRequest:
+		return toError(resp)
+	default:
+		assert.Unreachable("cover all cases of status code")
+	}
+
+	return ""
+}
+
+func (c *client) applicationDeleted(application string) string {
+	req, err := http.NewRequest(
+		"DELETE",
+		unixURL(zeusapiserver.DeleteApplicationAPIPath(application)),
+		nil,
+	)
+	assert.ErrNil(err)
+
+	resp, err := c.http.Do(req)
+	failOnError(err, "Request failed: %v", err)
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return "Deleted"
+	case http.StatusBadRequest:
+		return toError(resp)
+	default:
+		assert.Unreachable("cover all cases of status code")
+	}
+
+	return ""
+}
+
+func (c *client) applicationInspectAll() string {
+	req, err := http.NewRequest(
+		"GET",
+		unixURL(zeusapiserver.InspectAllApplicationAPIPath()),
+		nil,
+	)
+	assert.ErrNil(err)
+
+	resp, err := c.http.Do(req)
+	failOnError(err, "Request failed: %v", err)
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return c.toOutput(
+			toObject[zeusapiserver.InspectAllApplicationResponse](resp.Body),
+		)
+	case http.StatusBadRequest:
+		return toError(resp)
+	default:
+		assert.Unreachable("cover all cases of status code")
+	}
+
+	return ""
+}
+
+func (c *client) applicationInspect(application string) string {
+	req, err := http.NewRequest(
+		"GET",
+		unixURL(zeusapiserver.InspectApplicationAPIPath(application)),
+		nil,
+	)
+	assert.ErrNil(err)
+
+	resp, err := c.http.Do(req)
+	failOnError(err, "Request failed: %v", err)
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return c.toOutput(
+			toObject[zeusapiserver.InspectApplicationResponse](resp.Body),
+		)
+	case http.StatusBadRequest:
+		return toError(resp)
+	default:
+		assert.Unreachable("cover all cases of status code")
+	}
+
+	return ""
 }

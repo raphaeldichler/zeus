@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	deleteApplicationAPIPath     string = "/v1.0/applications/{application}"
+	deleteApplicationAPIPath string = "/v1.0/applications/{application}"
 )
 
 func DeleteApplicationAPIPath(application string) string {

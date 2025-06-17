@@ -4,7 +4,6 @@
 package zeusctl
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -104,40 +103,20 @@ func inspectApplication(clientProvider *contextProvider) {
 		Short: "Inspect application",
 		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-      if len(args) == 0 {
-        applicationName = ""
-      } else {
-        applicationName = args[0]
-      }
-
-			client := clientProvider.client.http
+			client := clientProvider.client
 			assert.NotNil(client, "client must not be nil")
 
-			req, err := http.NewRequest(
-				"GET",
-				unixURL(zeusapiserver.InspectAllApplicationAPIPath()),
-				nil,
-			)
-			assert.ErrNil(err)
-
-			resp, err := client.Do(req)
-			failOnError(err, "Request failed: %v", err)
-			defer resp.Body.Close()
-
-			switch resp.StatusCode {
-			case http.StatusOK:
-        var r zeusapiserver.InspectAllApplicationResponse
-        err := json.NewDecoder(resp.Body).Decode(&r)
-        failOnError(err, "Failed to decode response: %v", err)
-
-				out := clientProvider.outputFormatter.Marshal(r)
-				fmt.Printf("%s", out)
-				return
-			case http.StatusBadRequest:
-				fmt.Printf("Failed to inspect all applications\n%s", FormatJSON(resp.Body))
-				return
+			switch len(args) {
+			case 0:
+				fmt.Println(
+					client.applicationInspectAll(),
+				)
+			case 1:
+				fmt.Println(
+					client.applicationInspect(args[0]),
+				)
 			default:
-				assert.Unreachable("cover all cases of status code")
+				assert.Unreachable("cover all cases of number of arguments")
 			}
 		},
 	}
@@ -154,31 +133,12 @@ func deleteApplication(clientProvider *contextProvider) {
 			applicationName = args[0]
 			assert.NotEmptyString(applicationName, "application name must not be empty")
 
-			client := clientProvider.client.http
+			client := clientProvider.client
 			assert.NotNil(client, "client must not be nil")
 
-			req, err := http.NewRequest(
-				"DELETE",
-				unixURL(zeusapiserver.DeleteApplicationAPIPath(applicationName)),
-				nil,
+			fmt.Println(
+				client.applicationDeleted(applicationName),
 			)
-			assert.ErrNil(err)
-
-			resp, err := client.Do(req)
-			failOnError(err, "Request failed: %v", err)
-			defer resp.Body.Close()
-
-			switch resp.StatusCode {
-			case http.StatusNoContent:
-				fmt.Printf("Successfully deleted application: %s\n", applicationName)
-				return
-			case http.StatusBadRequest:
-				fmt.Printf("Failed to delete application: %s\n%s", applicationName, FormatJSON(resp.Body))
-				return
-			default:
-				assert.Unreachable("cover all cases of status code")
-			}
-
 		},
 	}
 
@@ -197,9 +157,9 @@ func enableApplication(clientProvider *contextProvider) {
 			client := clientProvider.client
 			assert.NotNil(client, "client must not be nil")
 
-      fmt.Println(
-        client.applicationEnabled(applicationName),
-      )
+			fmt.Println(
+				client.applicationEnabled(applicationName),
+			)
 		},
 	}
 
@@ -215,30 +175,12 @@ func disableApplication(clientProvider *contextProvider) {
 			applicationName = args[0]
 			assert.NotEmptyString(applicationName, "application name must not be empty")
 
-			client := clientProvider.client.http
+			client := clientProvider.client
 			assert.NotNil(client, "client must not be nil")
 
-			req, err := http.NewRequest(
-				"POST",
-				unixURL(zeusapiserver.DisableApplicationAPIPath(applicationName)),
-				nil,
+			fmt.Println(
+				client.applicationDisabled(applicationName),
 			)
-			assert.ErrNil(err)
-
-			resp, err := client.Do(req)
-			failOnError(err, "Request failed: %v", err)
-			defer resp.Body.Close()
-
-			switch resp.StatusCode {
-			case http.StatusNoContent:
-				fmt.Printf("Successfully disabled application: %s\n", applicationName)
-				return
-			case http.StatusBadRequest:
-				fmt.Printf("Failed to disable application: %s\n%s", applicationName, FormatJSON(resp.Body))
-				return
-			default:
-				assert.Unreachable("cover all cases of status code")
-			}
 		},
 	}
 

@@ -75,7 +75,6 @@ func NewCommand() *Command {
 			}
 			formatter, ok := formatter.StringToFormat[outputFormat]
 			assert.True(ok, "formatter must exist")
-			clientProvider.outputFormatter = formatter
 
 			path := defaultConfigPath
 			if zeusConfig := os.Getenv(enviornmentNameZeusConfig); zeusConfig != "" {
@@ -90,7 +89,7 @@ func NewCommand() *Command {
 			config, err := loadConfig(path)
 			failOnError(err, "Could not load config: %v", err)
 
-			client, err := config.newClient()
+			client, err := config.newClient(formatter)
 			failOnError(err, "Could not create client: %v", err)
 
 			clientProvider.client = client
@@ -101,7 +100,10 @@ func NewCommand() *Command {
 		&configPath,
 		"config",
 		"",
-		fmt.Sprintf("Config file path (default: \"%s\", can also be set via $%s)", defaultConfigPath, enviornmentNameZeusConfig),
+		fmt.Sprintf(
+			"Config file path (default: \"%s\", can also be set via $%s)",
+			defaultConfigPath, enviornmentNameZeusConfig,
+		),
 	)
 	rootCmd.PersistentFlags().StringVarP(
 		&outputFormat, "output", "o", "pretty", "Output format: json, yaml, or pretty",
