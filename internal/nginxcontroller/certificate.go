@@ -118,6 +118,11 @@ func (self *Controller) Present(
 	)
 
 	if err := self.storeAndApplyConfig(d); err != nil {
+    self.config.deleteHTTPLocation(
+      domain,
+			acmeLocationPath(token),
+			Matching_Exact,
+    )
 		return err
 	}
 
