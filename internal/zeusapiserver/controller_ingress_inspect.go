@@ -46,7 +46,6 @@ type ContainerInspectResponse struct {
 	State       string `json:"state"`
 }
 
-
 func buildServerResponse(state *record.ApplicationRecord) []ServerInspectResponse {
 	servers := make([]ServerInspectResponse, 0)
 
@@ -117,40 +116,39 @@ func (self *ZeusController) GetIngressInspect(
 	r *http.Request,
 	command *IngressInspectRequest,
 ) {
-  state, err := self.records.get(application(command.Application))
+	state, err := self.records.get(application(command.Application))
 
 	i := state.Ingress
 	if !i.Enabled() {
 		// error response -
-		return 
+		return
 	}
 
-  container, ok := ingress.SelectIngressContainer(state)
+	container, ok := ingress.SelectIngressContainer(state)
 	if !ok {
-		return 
+		return
 	}
 
 	inspect, err := container.Inspect()
 	if err != nil {
 		// error response -
-		return 
+		return
 	}
 
 	// problem. obtaining current information about the container might error
 	// ->
 	_ = InspectResponse{
-    Name:i.Metadata.Name,
-    StartTime:i.Metadata.CreateTime.String(),
-    IP:inspect.NetworkSettings.IPAddress,
-    Container: ContainerInspectResponse{
-      ContainerID: inspect.ID,
-      Image:i.Metadata.Image,
-      ImageID:     inspect.Image,
-      State:       inspect.State.Status,
-    },
-    Servers:      buildServerResponse(state),
-    Certificates: buildCertificatResponse(state),
+		Name:      i.Metadata.Name,
+		StartTime: i.Metadata.CreateTime.String(),
+		IP:        inspect.NetworkSettings.IPAddress,
+		Container: ContainerInspectResponse{
+			ContainerID: inspect.ID,
+			Image:       i.Metadata.Image,
+			ImageID:     inspect.Image,
+			State:       inspect.State.Status,
+		},
+		Servers:      buildServerResponse(state),
+		Certificates: buildCertificatResponse(state),
 	}
-
 
 }
