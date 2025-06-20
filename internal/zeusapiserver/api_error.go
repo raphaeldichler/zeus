@@ -5,6 +5,7 @@ package zeusapiserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -12,9 +13,10 @@ type BadRequest struct {
 	Message string `json:"message"`
 }
 
-func replyBadRequest(w http.ResponseWriter, message string) {
+func replyBadRequest(w http.ResponseWriter, message string, args ...any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 
-	json.NewEncoder(w).Encode(BadRequest{Message: message})
+	msg := fmt.Sprintf(message, args...)
+	json.NewEncoder(w).Encode(BadRequest{Message: msg})
 }

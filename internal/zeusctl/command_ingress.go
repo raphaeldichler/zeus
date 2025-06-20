@@ -30,11 +30,8 @@ func ingressCommands(rootCmd *cobra.Command, clientProvider *contextProvider) {
 }
 
 type IngressApplyRequest struct {
-	Version  string `json:"version"`
-	Metadata struct {
-		Name string `json:"name"`
-	} `json:"metadata"`
-	zeusapiserver.IngressApplyRequestBody `json:"ingress"`
+	Version                               string `json:"version" yaml:"version"`
+	zeusapiserver.IngressApplyRequestBody `json:"ingress" yaml:"ingress"`
 }
 
 func applyIngress(clientProvider *contextProvider) {
@@ -47,8 +44,9 @@ func applyIngress(clientProvider *contextProvider) {
 			content, err := os.ReadFile(filePath)
 			failOnError(err, "Could not read file: %v", err)
 
-			reader := io.NopCloser(bytes.NewReader(content))
-			apply := toObject[IngressApplyRequest](reader)
+			apply := toObject[IngressApplyRequest](
+				io.NopCloser(bytes.NewReader(content)),
+			)
 
 			fmt.Println(client.ingressApply(apply))
 		},
@@ -65,13 +63,33 @@ func inspectIngress(clientProvider *contextProvider) {
 		Use:   "inspect",
 		Short: "Inspect ingress configuration",
 		Run: func(cmd *cobra.Command, args []string) {
-			_ = clientProvider.client
+			client := clientProvider.client
+
 		},
 	}
 
 	ingress.AddCommand(inspectCmd)
 }
 
-func (c *client) ingressApply(req *IngressApplyRequest) string {
+func (c *client) ingressApply(apply *IngressApplyRequest) string {
+	r, err := http.NewRequest(
+		"POST",
+		unixURL(zeusapiserver.InspectApplicationAPIPath(c.application)),
+		nil,
+	)
+	assert.ErrNil(err)
+
+	resp, err := c.http.Do(r)
+	failOnError(err, "Request failed: %v", err)
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return "Created"
+	case http.StatusBadRequest:
+		return toError(resp)
+	default:
+		assert.Unreachable("cover all cases of status code")
+	}
+
 	return ""
 }

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -47,6 +48,14 @@ func InspectApplicationAPIPath(application string) string {
 
 func InspectAllApplicationAPIPath() string {
 	return inspectAllApplicationAPIPath
+}
+
+func EnableApplicationAPIPath(applicaiton string) string {
+	return strings.Replace(enableApplicationAPIPath, "{application}", applicaiton, 1)
+}
+
+func DisableApplicationAPIPath(applicaiton string) string {
+	return strings.Replace(disableApplicationAPIPath, "{application}", applicaiton, 1)
 }
 
 type ApplicationController struct {
@@ -305,14 +314,6 @@ func (self *ApplicationController) InspectApplication(
 	)
 	assert.ErrNil(err)
 	w.WriteHeader(http.StatusOK)
-}
-
-func EnableApplicationAPIPath(applicaiton string) string {
-	return strings.Replace(enableApplicationAPIPath, "{application}", applicaiton, 1)
-}
-
-func DisableApplicationAPIPath(applicaiton string) string {
-	return strings.Replace(disableApplicationAPIPath, "{application}", applicaiton, 1)
 }
 
 type DisableApplicationRequest struct {
