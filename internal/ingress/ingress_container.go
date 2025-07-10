@@ -4,13 +4,16 @@
 package ingress
 
 import (
-	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
+	runtimeErr "github.com/raphaeldichler/zeus/internal/runtime/errtype"
 	"github.com/raphaeldichler/zeus/internal/nginxcontroller"
 	"github.com/raphaeldichler/zeus/internal/record"
 	"github.com/raphaeldichler/zeus/internal/runtime"
+	"github.com/raphaeldichler/zeus/internal/util/optional"
 )
 
 const ZeusRootPath string = "/run/zeus/"
+
+
 
 // Ensures that an ingress container is create and running.
 //
@@ -20,64 +23,64 @@ const ZeusRootPath string = "/run/zeus/"
 // Note: It is assumed that an existing path to the socket mount exists, if a new container must be created.
 func SelectOrCreateIngressContainer(
 	state *record.ApplicationRecord,
-) (container *runtime.Container, ok bool) {
-	defer func() {
-		if container == nil {
-			ok = false
-			return
-		}
-
-		if ok := nginxcontroller.ValidateContainer(container, state); ok {
-			return
-		}
-
-		if err := container.Shutdown(); err != nil {
-			state.Ingress.Errors.SetIngressError(
-				errtype.FailedInteractionWithDockerDaemon(errtype.DockerStopContainer, err),
-			)
-		}
-		container = nil
-		ok = false
-	}()
-
-	container, err := runtime.TrySelectOneContainer(
+) optional.Optional[runtime.Container] {
+	optionalContainer, err := runtime.TrySelectOneContainer(
 		state.Metadata.Application,
 		runtime.ObjectTypeLabel(runtime.IngressObject),
-		runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
 		runtime.ApplicationNameLabel(state.Metadata.Application),
 	)
 	if err != nil {
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithDockerDaemon(errtype.DockerSelectContainer, err),
+		state.Ingress.SetError(
+      runtimeErr.FailedInteractionWithDockerDaemon(runtimeErr.DockerSelectContainer, err),
 		)
-	}
-	if container != nil {
-		return container, true
+
+		return optional.Empty[runtime.Container]()
 	}
 
-	container, ok = nginxcontroller.CreateContainer(state)
+	optionalContainer = optionalContainer.IfPresent(func(t *runtime.Container) *runtime.Container {
+		if t.Image() == state.Ingress.Metadata.Image {
+			return t
+		}
+
+		// to enable auto updates we remove an ingress container
+		// if it has a different image. in the next steps
+		// the code will see a nil container and create a new one with
+		// the specified version
+		if err := t.Shutdown(); err != nil {
+      state.Ingress.SetError(
+        runtimeErr.FailedInteractionWithDockerDaemon(runtimeErr.DockerStopContainer, err),
+      )
+		}
+
+		return nil
+	})
+	if optionalContainer.IsPresent() {
+		return optionalContainer
+	}
+
+	container, ok := nginxcontroller.CreateContainer(state)
 	if !ok {
-		return nil, false
+		return optional.Empty[runtime.Container]()
 	}
 
-	return container, true
+	return optional.Of(container)
 }
 
 func SelectIngressContainer(
 	state *record.ApplicationRecord,
-) (container *runtime.Container, ok bool) {
-	container, err := runtime.TrySelectOneContainer(
+) optional.Optional[runtime.Container] {
+	optionalContainer, err := runtime.TrySelectOneContainer(
 		state.Metadata.Application,
 		runtime.ObjectTypeLabel(runtime.IngressObject),
-		runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
 		runtime.ApplicationNameLabel(state.Metadata.Application),
 	)
 	if err != nil {
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithDockerDaemon(errtype.DockerSelectContainer, err),
-		)
-		return nil, false
+    state.Ingress.SetError(
+      runtimeErr.FailedInteractionWithDockerDaemon(runtimeErr.DockerSelectContainer, err),
+    )
+
+		return optional.Empty[runtime.Container]()
 	}
 
-	return container, true
+	return optionalContainer
 }

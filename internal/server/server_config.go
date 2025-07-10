@@ -3,7 +3,10 @@
 
 package server
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 func filterByMethod(method string, controllers []Controller) *Controller {
 	for _, ctr := range controllers {
@@ -37,6 +40,7 @@ func (self *ServerConfig) setupControllers(mux *http.ServeMux) {
 		del := filterByMethod("DELETE", ctr)
 
 		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println(r.Method)
 			switch r.Method {
 			case "POST":
 				if post == nil {

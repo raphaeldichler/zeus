@@ -4,6 +4,7 @@
 package zeusctl
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -144,6 +145,19 @@ type client struct {
 func unixURL(path string) string {
 	assert.StartsWithString(path, "/", "path must start with '/'")
 	return fmt.Sprintf("http://unix%s", path)
+}
+
+func yamlToObject[T any](r io.ReadCloser) *T {
+  obj := new(T)
+  err := yaml.NewDecoder(r).Decode(obj)
+  assert.ErrNil(err)
+  return obj
+}
+
+func objectToJson(obj any) io.Reader {
+  json, err := json.Marshal(obj)
+  assert.ErrNil(err)
+  return bytes.NewReader(json)
 }
 
 func toObject[T any](r io.ReadCloser) *T {

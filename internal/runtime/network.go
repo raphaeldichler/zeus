@@ -54,6 +54,10 @@ func newNetwork(
 	}
 }
 
+func (self *Network) String() string {
+	return self.name
+}
+
 func (self *Network) Cleanup() error {
 	ctx := context.Background()
 	return self.client.NetworkRemove(ctx, self.id)

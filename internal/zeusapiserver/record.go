@@ -5,6 +5,7 @@ package zeusapiserver
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -14,7 +15,7 @@ import (
 	bboltErr "go.etcd.io/bbolt/errors"
 )
 
-const ZeusDataStorePath = "/run/zeus/store"
+const ZeusDataStorePath = "/var/lib/zeus/store.bbolt"
 
 var (
 	ErrStopIteration      = errors.New("stop bbolt for-each iteration")
@@ -103,6 +104,7 @@ func (self *RecordCollection) add(app application, deploymentType record.Deploym
 
 // Only returns an error if the application does not exists.
 func (self *RecordCollection) get(app application) (*record.ApplicationRecord, error) {
+	fmt.Println(self)
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
@@ -137,8 +139,8 @@ func (self *RecordCollection) getEnabledApplication() *record.ApplicationRecord 
 			recordBytes := b.Get(RecordKey)
 			assert.NotNil(b, "application must have a record entry")
 
-			appRecord := record.FromGob(recordBytes)
-			if appRecord.Metadata.Enabled {
+			r := record.FromGob(recordBytes)
+			if r.Metadata.Enabled {
 				recordBytes := b.Get(RecordKey)
 				assert.NotNil(b, "application must have a record entry")
 				appRecord = record.FromGob(recordBytes)
@@ -229,6 +231,30 @@ func (self *RecordCollection) all() []*record.ApplicationRecord {
 	return records
 }
 
+// Synchronizes the application state with the other application state. If the application is not enabled it will panic.
+func (self *RecordCollection) sync(other *record.ApplicationRecord) error {
+  self.mu.Lock()
+  defer self.mu.Unlock()
+
+  return self.db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(other.Metadata.Application))
+    assert.NotNil(b, "application must have a record entry")
+
+		recordBytes := b.Get(RecordKey)
+		assert.True(recordBytes != nil, "application must have a record entry")
+
+    appRecord := record.FromGob(recordBytes)
+    appRecord.Sync(other)
+
+		blob := appRecord.ToGob()
+		assert.True(len(blob) < bbolt.MaxValueSize, "blob must stay under 2GB")
+		err := b.Put(RecordKey, blob)
+		assert.ErrNil(err)
+
+		return nil
+	})
+}
+
 // Runs a transaction which first reads the record than performance action on it and after that its stored again.
 // Its ensured that druing this transaction no other thread can interact with the data.
 //
@@ -238,30 +264,19 @@ func (self *RecordCollection) tx(app application, f func(rec *record.Application
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	var appRecord *record.ApplicationRecord
-	err := self.db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(app))
+	return self.db.Update(func(tx *bbolt.Tx) error {
+	  b := tx.Bucket([]byte(app))
 		if b == nil {
 			return bboltErr.ErrBucketNotFound
 		}
 
 		recordBytes := b.Get(RecordKey)
 		assert.NotNil(b, "application must have a record entry")
+    appRecord := record.FromGob(recordBytes)
 
-		appRecord = record.FromGob(recordBytes)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	if err := f(appRecord); err != nil {
-		return err
-	}
-
-	err = self.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(app))
-		assert.NotNil(b, "the application must exist")
+    if err := f(appRecord); err != nil {
+      return err
+    }
 
 		blob := appRecord.ToGob()
 		assert.True(len(blob) < bbolt.MaxValueSize, "blob must stay under 2GB")
@@ -270,7 +285,4 @@ func (self *RecordCollection) tx(app application, f func(rec *record.Application
 
 		return nil
 	})
-	assert.ErrNil(err)
-
-	return nil
 }

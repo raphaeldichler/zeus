@@ -78,7 +78,7 @@ func TrySelectApplicationNetwork(
 		return networks[0].NewNetwork(application), nil
 
 	default:
-		assert.Unreachable("Network must exists, is created on application start")
+		assert.Unreachable("Either 0 or 1 networks must be selected")
 	}
 
 	return nil, nil
@@ -98,10 +98,13 @@ func SelectAllNonApplicationNetworks(
 
 	var result []*Network = nil
 	for _, nw := range networks {
-		application := nw.Labels[labelApplicationName]
+		applicationLabel := nw.Labels[labelApplicationName]
+		if applicationLabel == application {
+			continue
+		}
 
 		selected := &SelectedNetwork{name: nw.Name, id: nw.ID}
-		network := selected.NewNetwork(application)
+		network := selected.NewNetwork(applicationLabel)
 
 		result = append(result, network)
 	}

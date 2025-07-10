@@ -5,10 +5,8 @@ package record
 
 import (
 	"time"
-)
 
-const (
-	IngressKey RecordKey = "/v1.0/ingress"
+	"github.com/raphaeldichler/zeus/internal/assert"
 )
 
 const (
@@ -23,27 +21,13 @@ const (
 	TlsRenew
 )
 
-func (t TlsState) GoString() string {
-	switch t {
-	case TlsObtain:
-		return "TlsObtain"
-
-	case TlsRenew:
-		return "TlsRenew"
-
-	default:
-		return "Unknown"
-	}
-}
-
 type RecordIngress struct {
-	Errors   IngressErrorRecord
 	Metadata IngressMetadataRecord
+	Errors   []*IngressErrorEntryRecord
 	Servers  []*ServerRecord
 }
 
 type IngressMetadataRecord struct {
-	Name       string
 	CreateTime time.Time
 	Image      string
 }
@@ -73,11 +57,6 @@ type TlsRecord struct {
 	FullchainPem     []byte
 }
 
-type IngressErrorRecord struct {
-	Ingress []IngressErrorEntryRecord
-	TLS     []IngressErrorEntryRecord
-}
-
 type IngressErrorEntryRecord struct {
 	Type       string
 	Identifier string
@@ -85,31 +64,47 @@ type IngressErrorEntryRecord struct {
 }
 
 func (self *RecordIngress) Enabled() bool {
+	if self == nil {
+		return false
+	}
 	return len(self.Servers) > 0
 }
 
-func NewIngressRecord() RecordIngress {
-	return RecordIngress{}
+func NewIngressRecord() *RecordIngress {
+	return &RecordIngress{
+		Metadata: IngressMetadataRecord{
+			CreateTime: time.Now(),
+			Image:      "zeus-nginx:v0.1",
+		},
+	}
 }
 
-func (self *IngressErrorRecord) NoErrors() bool {
-	return len(self.TLS) == 0 && len(self.Ingress) == 0
+func (self *RecordIngress) NoErrors() bool {
+	return len(self.Errors) == 0
 }
 
-func (self *IngressErrorRecord) SetIngressError(entry IngressErrorEntryRecord) {
-	self.TLS = append(self.TLS, entry)
+func (self *RecordIngress) SetError(entry IngressErrorEntryRecord) {
+	self.Errors = append(self.Errors, &IngressErrorEntryRecord{
+		Type:       entry.Type,
+		Identifier: entry.Identifier,
+		Message:    entry.Message,
+	})
 }
 
-func (self *IngressErrorRecord) SetTlsError(entry IngressErrorEntryRecord) {
-	self.TLS = append(self.TLS, entry)
-}
-
-func (self *IngressErrorRecord) ExistsTlsError(entry IngressErrorEntryRecord) bool {
-	for _, err := range self.TLS {
+func (self *RecordIngress) HasError(entry IngressErrorEntryRecord) bool {
+	for _, err := range self.Errors {
 		if err.Type == entry.Type && err.Identifier == entry.Identifier {
 			return true
 		}
 	}
 
 	return false
+}
+
+func (self *RecordIngress) Sync(other *RecordIngress) {
+	assert.True(self.Metadata.Image == other.Metadata.Image, "image must be the same")
+	assert.True(self.Metadata.CreateTime.Equal(other.Metadata.CreateTime), "create time must be the same")
+
+	self.Errors = other.Errors
+	self.Servers = other.Servers
 }

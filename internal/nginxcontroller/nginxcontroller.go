@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/raphaeldichler/zeus/internal/log"
+	log "github.com/raphaeldichler/zeus/internal/util/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -103,6 +103,12 @@ func (self *Controller) SetIngressConfig(
 	ctx context.Context,
 	req *IngressRequest,
 ) (*IngressResponse, error) {
+	/*
+		if req.Equal(self.config) {
+			return &IngressResponse{}, nil
+		}
+	*/
+
 	d, err := openDirectory()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to open a new direcotry: %v", err)

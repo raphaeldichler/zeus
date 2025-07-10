@@ -3,7 +3,27 @@
 
 package record
 
-type RecordService struct{}
+type RecordService struct{
+
+  Services []ServiceSpec
+}
+
+type ServiceSpec struct {
+  ServiceName RecordKey
+  Network *ServiceNetwork
+  Container *ServiceContainer
+}
+
+type ServiceNetwork struct {
+  // Domain name of the service
+  Name string
+  // port name to port number
+  PortMapping map[string]string
+}
+
+type ServiceContainer struct {
+	Image string
+}
 
 func (self *RecordService) GetEndpoint(service RecordKey) string {
 	return ""

@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/optional"
 )
 
 type SelectedContainer struct {
@@ -72,22 +73,22 @@ func SelectContainer(
 func TrySelectOneContainer(
 	application string,
 	labels ...Label,
-) (*Container, error) {
+) (optional.Optional[Container], error) {
 	selectedContainers, err := SelectContainer(labels...)
 	if err != nil {
-		return nil, err
+		return optional.Empty[Container](), err
 	}
 
 	switch len(selectedContainers) {
 	case 0:
-		return nil, nil
+		return optional.Empty[Container](), nil
 
 	case 1:
 		c, err := selectedContainers[0].NewContainer(application)
 		if err != nil {
-			return nil, err
+		  return optional.Empty[Container](), err
 		}
-		return c, nil
+		return optional.Of(c), nil
 
 	default:
 		assert.Unreachable(
@@ -95,7 +96,7 @@ func TrySelectOneContainer(
 		)
 	}
 
-	return nil, nil
+	return optional.Empty[Container](), nil
 }
 
 func SelectAllNonApplicationContainers(
@@ -112,10 +113,13 @@ func SelectAllNonApplicationContainers(
 
 	var result []*Container = nil
 	for _, cont := range containers {
-		application := cont.Labels[labelApplicationName]
+		applicationLabel := cont.Labels[labelApplicationName]
+		if applicationLabel == application {
+			continue
+		}
 
 		selected := &SelectedContainer{id: cont.ID}
-		c, err := selected.NewContainer(application)
+		c, err := selected.NewContainer(applicationLabel)
 		if err != nil {
 			return nil, err
 		}

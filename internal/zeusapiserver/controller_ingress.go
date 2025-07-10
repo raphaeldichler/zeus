@@ -6,23 +6,41 @@ package zeusapiserver
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/ingress"
+	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
 	"github.com/raphaeldichler/zeus/internal/record"
 	bboltErr "go.etcd.io/bbolt/errors"
 )
 
 const (
-	IngressApplyAPIPath   = "/v1.0/applications/{application}/ingress"
-	IngressInspectAPIPath = "/v1.0/applications/{application}/ingress"
+	ingressApplyAPIPath   = "/v1.0/applications/{application}/ingress"
+	ingressInspectAPIPath = "/v1.0/applications/{application}/ingress"
 )
 
-func InggressApplyAPIPath(application string) string {
-	return strings.Replace(IngressApplyAPIPath, "{application}", application, 1)
+func IngressApplyAPIPath(apiVersion string, application string) string {
+	switch apiVersion {
+	case "v1.0":
+		return strings.Replace(ingressApplyAPIPath, "{application}", application, 1)
+	default:
+		assert.Unreachable("cover all cases of api version")
+	}
+	return ""
+}
+
+func IngressInspectAPIPath(apiVersion string, application string) string {
+	switch apiVersion {
+	case "v1.0":
+		return strings.Replace(ingressInspectAPIPath, "{application}", application, 1)
+	default:
+		assert.Unreachable("cover all cases of api version")
+	}
+	return ""
 }
 
 type IngressInspectRequest struct {
@@ -36,6 +54,13 @@ type InspectResponse struct {
 	Container    ContainerInspectResponse     `json:"container"`
 	Servers      []ServerInspectResponse      `json:"servers"`
 	Certificates []CertificateInspectResponse `json:"certificates"`
+	Errors       []IngressErrorEntryRecord    `json:"errors"`
+}
+
+type IngressErrorEntryRecord struct {
+	Type       string `json:"type"`
+	Identifier string `json:"identifier"`
+	Message    string `json:"message"`
 }
 
 type ServerInspectResponse struct {
@@ -126,14 +151,22 @@ func (self *ZeusController) PostIngressApply(
 ) {
 	defer self.orchestrator.ping()
 
+	fmt.Println(command)
+
 	err := self.records.tx(
 		application(command.Application),
 		func(r *record.ApplicationRecord) error {
 			ingress := r.Ingress
+			if ingress == nil {
+				ingress = record.NewIngressRecord()
+				r.Ingress = ingress
+			}
+
 			serverFilter := newServerFilter(ingress.Servers)
 			ingress.Servers = nil
 
 			for _, rule := range command.IngressApplyRequestBody.Rules {
+				fmt.Println(rule.Host)
 				server := &record.ServerRecord{
 					Host: rule.Host,
 					IPv6: command.IngressApplyRequestBody.IPv6,
@@ -170,6 +203,7 @@ func (self *ZeusController) PostIngressApply(
 				}
 
 				for _, path := range rule.Http.Paths {
+					fmt.Printf("%s - %s - %s\n", path.Path, path.Matching, path.Service.Name)
 					loc := record.PathRecord{
 						Path:     path.Path,
 						Matching: path.Matching,
@@ -199,6 +233,8 @@ func buildServerResponse(state *record.ApplicationRecord) []ServerInspectRespons
 				path = "= " + serverPath.Path
 			}
 
+			fmt.Print("host", server.Host)
+			fmt.Println(" | path", path)
 			servers = append(servers, ServerInspectResponse{
 				Host:     server.Host,
 				Path:     path,
@@ -206,6 +242,9 @@ func buildServerResponse(state *record.ApplicationRecord) []ServerInspectRespons
 			})
 		}
 	}
+
+	fmt.Println("servers")
+	fmt.Println(servers)
 
 	return servers
 }
@@ -218,14 +257,14 @@ func buildCertificatResponse(state *record.ApplicationRecord) []CertificateInspe
 			certificaters = append(certificaters, CertificateInspectResponse{
 				Host:     server.Host,
 				Enabled:  false,
-				Status:   "",
-				Deadline: "",
-				Email:    "",
+				Status:   "-",
+				Deadline: "-",
+				Email:    "-",
 			})
 
 		} else {
 			status := "Obtain"
-			deadline := ""
+			deadline := "-"
 			if server.Tls.State == record.TlsRenew {
 				status = "Renew"
 				deadline = server.Tls.Expires.String()
@@ -245,6 +284,20 @@ func buildCertificatResponse(state *record.ApplicationRecord) []CertificateInspe
 	return certificaters
 }
 
+func buildErrorResponse(state *record.ApplicationRecord) []IngressErrorEntryRecord {
+	errors := make([]IngressErrorEntryRecord, 0)
+
+	for _, err := range state.Ingress.Errors {
+		errors = append(errors, IngressErrorEntryRecord{
+			Type:       err.Type,
+			Identifier: err.Identifier,
+			Message:    err.Message,
+		})
+	}
+
+	return errors
+}
+
 func GetIngressInspectRequestDecoder(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -259,7 +312,12 @@ func (self *ZeusController) GetIngressInspect(
 	r *http.Request,
 	command *IngressInspectRequest,
 ) {
+	fmt.Println(command)
 	state, err := self.records.get(application(command.Application))
+	if err != nil {
+		replyBadRequest(w, "Application is not enabled")
+		return
+	}
 
 	i := state.Ingress
 	if !i.Enabled() {
@@ -267,31 +325,42 @@ func (self *ZeusController) GetIngressInspect(
 		return
 	}
 
+	response := InspectResponse{
+		Name:      "ingress",
+		StartTime: i.Metadata.CreateTime.String(),
+		IP:        "-",
+		Container: ContainerInspectResponse{
+			ContainerID: "-",
+			Image:       i.Metadata.Image,
+			ImageID:     "-",
+			State:       "Not Created",
+		},
+		Servers:      buildServerResponse(state),
+		Certificates: buildCertificatResponse(state),
+		Errors:       buildErrorResponse(state),
+	}
+
 	container, ok := ingress.SelectIngressContainer(state)
 	if !ok {
-		replyBadRequest(w, "Failed to interact with container daemon")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(response)
+		assert.ErrNil(err)
 		return
 	}
 
 	inspect, err := container.Inspect()
 	if err != nil {
-		replyBadRequest(w, "Failed to interact with container daemon. Inspection failed: %v", err)
-		return
+		state.Ingress.SetError(
+			errtype.FailedInteractionWithDockerDaemon(errtype.DockerInspectContainer, err),
+		)
+	} else {
+		response.IP = inspect.NetworkSettings.IPAddress
+		response.Container.State = inspect.State.Status
+		response.Container.ContainerID = inspect.ID
+		response.Container.ImageID = inspect.Image
 	}
 
-	response := InspectResponse{
-		Name:      i.Metadata.Name,
-		StartTime: i.Metadata.CreateTime.String(),
-		IP:        inspect.NetworkSettings.IPAddress,
-		Container: ContainerInspectResponse{
-			ContainerID: inspect.ID,
-			Image:       i.Metadata.Image,
-			ImageID:     inspect.Image,
-			State:       inspect.State.Status,
-		},
-		Servers:      buildServerResponse(state),
-		Certificates: buildCertificatResponse(state),
-	}
+	response.Errors = buildErrorResponse(state)
 
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(response)

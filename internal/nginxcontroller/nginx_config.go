@@ -79,9 +79,10 @@ func (self *IngressRequest) storeAsNginxConfig(d directory) error {
 	w.unintend()
 	w.writeln("}")
 
-	fmt.Println(string(w.content()))
+	content := w.content()
+	fmt.Println(string(content))
 
-	err := os.WriteFile(NginxConfigPath, w.content(), 0660)
+	err := os.WriteFile(NginxConfigPath, content, 0660)
 	if err != nil {
 		return err
 	}
@@ -118,6 +119,7 @@ func (self *Location) write(w *ConfigBuilder) {
 	if self.Matching == Matching_Exact {
 		prefix = "location = "
 	}
+	fmt.Println(prefix, self.Path, " {")
 	w.writeln(prefix, self.Path, " {")
 	w.intend()
 
@@ -191,7 +193,7 @@ func (self *Server) write(d directory, w *ConfigBuilder) error {
 	w.intend()
 
 	tls := self.Tls
-	listenIPv6 := "listen [::]80;"
+	listenIPv6 := "listen [::]:80;"
 	listen := "listen 80;"
 	if tls != nil {
 		listenIPv6 = "listen [::]:443 ssl;"

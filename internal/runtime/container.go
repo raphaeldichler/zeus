@@ -17,7 +17,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/raphaeldichler/zeus/internal/log"
+	log "github.com/raphaeldichler/zeus/internal/util/logger"
 )
 
 var (
@@ -28,6 +28,26 @@ var (
 const (
 	ErrTypeFailedInteractionWithDockerDaemon = "FailedInteractionWithDockerDaemon"
 )
+
+type ContainerOptions struct {
+	options []ContainerOption
+}
+
+func NewContainerOptions() *ContainerOptions {
+	return &ContainerOptions{
+		options: []ContainerOption{},
+	}
+}
+
+func (self *ContainerOptions) Add(options ...ContainerOption) {
+	self.options = append(self.options, options...)
+}
+
+func (self *ContainerOptions) Build(
+	application string,
+) (*Container, error) {
+	return CreateNewContainer(application, self.options...)
+}
 
 type ContainerConfig struct {
 	config        *container.Config
@@ -82,12 +102,14 @@ func toContainer(
 	containerID string,
 	network *Network,
 ) *Container {
-	logger := log.New(application, "c#"+containerID[:10])
+	name := application + "-" + containerID[:10]
+	logger := log.New(application, name)
 	return &Container{
 		id:      containerID,
 		client:  c,
 		log:     logger,
 		network: network,
+		name:    name,
 	}
 }
 
@@ -192,11 +214,13 @@ type Container struct {
 	id      string
 	client  *client.Client
 	network *Network
+	name    string
+	image   string
 
 	log *log.Logger
 }
 
-func NewContainer(
+func CreateNewContainer(
 	application string,
 	options ...ContainerOption,
 ) (*Container, error) {
@@ -211,7 +235,12 @@ func NewContainer(
 }
 
 func (self *Container) String() string {
-	return self.id
+	return self.name
+}
+
+// Returns the image name of the running container
+func (self *Container) Image() string {
+	return self.image
 }
 
 func (self *Container) Shutdown() error {

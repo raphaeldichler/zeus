@@ -8,7 +8,7 @@ import (
 	"encoding/gob"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/raphaeldichler/zeus/internal/log"
+	"github.com/raphaeldichler/zeus/internal/util/logger"
 )
 
 type DeploymentType int
@@ -83,4 +83,12 @@ func FromGob(data []byte) *ApplicationRecord {
 // Persists the application state
 func (self *ApplicationRecord) Apply() error {
 	return nil
+}
+
+func (self *ApplicationRecord) Sync(other *ApplicationRecord) {
+	assert.True(self.Metadata.Application == other.Metadata.Application, "application must be the same")
+	assert.True(self.Metadata.Deployment == other.Metadata.Deployment, "deployment must be the same")
+	assert.True(self.Metadata.Enabled == other.Metadata.Enabled, "enabled must be the same")
+
+	self.Ingress.Sync(other.Ingress)
 }

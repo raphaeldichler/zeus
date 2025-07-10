@@ -15,6 +15,7 @@ import (
 	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
 	"github.com/raphaeldichler/zeus/internal/record"
 	"github.com/raphaeldichler/zeus/internal/runtime"
+	runtimeErr "github.com/raphaeldichler/zeus/internal/runtime/errtype"
 )
 
 var (
@@ -30,8 +31,8 @@ func init() {
 
 // Returns the directory which is be used to store the socket for IPC
 // between the container and the application.
-func HostSocketDirectory(application string) string {
-	return filepath.Join(hostSocketRoot, "zeus", application, "ingress")
+func HostSocketDirectory() string {
+	return filepath.Join(hostSocketRoot, "zeus", "ingress")
 }
 
 // Creates an Ingress container which will be conntected to the network.
@@ -43,12 +44,13 @@ func CreateContainer(state *record.ApplicationRecord) (container *runtime.Contai
 		state.Metadata.Application,
 	)
 	if err != nil {
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
+		state.Ingress.SetError(
+			runtimeErr.FailedInteractionWithDockerDaemon(runtimeErr.DockerCreateContainer, err),
 		)
 	}
+	assert.NotNil(network, "network must not be nil")
 
-	container, err = runtime.NewContainer(
+	container, err = runtime.CreateNewContainer(
 		state.Metadata.Application,
 		runtime.WithImage(state.Ingress.Metadata.Image),
 		runtime.WithPulling(),
@@ -60,11 +62,11 @@ func CreateContainer(state *record.ApplicationRecord) (container *runtime.Contai
 			runtime.ObjectImageLabel(state.Ingress.Metadata.Image),
 			runtime.ApplicationNameLabel(state.Metadata.Application),
 		),
-		runtime.WithMount(HostSocketDirectory(state.Metadata.Application), SocketMountPath),
+		runtime.WithMount(HostSocketDirectory(), SocketMountPath),
 	)
 	if err != nil {
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithDockerDaemon(errtype.DockerCreateContainer, err),
+		state.Ingress.SetError(
+			runtimeErr.FailedInteractionWithDockerDaemon(runtimeErr.DockerCreateContainer, err),
 		)
 		return nil, false
 	}
@@ -72,8 +74,8 @@ func CreateContainer(state *record.ApplicationRecord) (container *runtime.Contai
 	for runs := 0; ; {
 		exists, err := container.ExitsPath(NginxPidFilePath)
 		if runs == 3 {
-			state.Ingress.Errors.SetIngressError(
-				errtype.FailedInteractionWithDockerDaemon(errtype.DockerInspectContainer, err),
+			state.Ingress.SetError(
+				runtimeErr.FailedInteractionWithDockerDaemon(runtimeErr.DockerInspectContainer, err),
 			)
 			return nil, false
 		}
@@ -94,8 +96,8 @@ func ValidateContainer(c *runtime.Container, state *record.ApplicationRecord) bo
 
 	inspect, err := c.Inspect()
 	if err != nil {
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithDockerDaemon(errtype.DockerInspectContainer, err),
+		state.Ingress.SetError(
+			runtimeErr.FailedInteractionWithDockerDaemon(runtimeErr.DockerInspectContainer, err),
 		)
 		return false
 	}
@@ -107,7 +109,7 @@ func ValidateContainer(c *runtime.Container, state *record.ApplicationRecord) bo
 	socketMount := mounts[0]
 	correctSocketMount := container.MountPoint{
 		Type:        mount.TypeBind,
-		Source:      HostSocketDirectory(state.Metadata.Application),
+		Source:      HostSocketDirectory(),
 		Destination: SocketMountPath,
 		Mode:        "",
 		RW:          true,

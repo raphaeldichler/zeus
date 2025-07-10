@@ -31,7 +31,7 @@ func ingressCommands(rootCmd *cobra.Command, clientProvider *contextProvider) {
 
 type IngressApplyRequest struct {
 	Version                               string `json:"version" yaml:"version"`
-	zeusapiserver.IngressApplyRequestBody `json:"ingress" yaml:"ingress"`
+	Ingress zeusapiserver.IngressApplyRequestBody `json:"ingress" yaml:"ingress"`
 }
 
 func applyIngress(clientProvider *contextProvider) {
@@ -44,7 +44,7 @@ func applyIngress(clientProvider *contextProvider) {
 			content, err := os.ReadFile(filePath)
 			failOnError(err, "Could not read file: %v", err)
 
-			apply := toObject[IngressApplyRequest](
+			apply := yamlToObject[IngressApplyRequest](
 				io.NopCloser(bytes.NewReader(content)),
 			)
 
@@ -63,21 +63,48 @@ func inspectIngress(clientProvider *contextProvider) {
 		Use:   "inspect",
 		Short: "Inspect ingress configuration",
 		Run: func(cmd *cobra.Command, args []string) {
-			client := clientProvider.client
-
+      fmt.Println(
+        clientProvider.client.inspectIngress(),
+      )
 		},
 	}
 
 	ingress.AddCommand(inspectCmd)
 }
 
-func (c *client) ingressApply(apply *IngressApplyRequest) string {
+func (c *client) inspectIngress() string {
 	r, err := http.NewRequest(
-		"POST",
-		unixURL(zeusapiserver.InspectApplicationAPIPath(c.application)),
+		"GET",
+		unixURL(zeusapiserver.IngressInspectAPIPath("v1.0", c.application)),
 		nil,
 	)
 	assert.ErrNil(err)
+
+	resp, err := c.http.Do(r)
+	failOnError(err, "Request failed: %v", err)
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return c.toOutput(
+      toObject[zeusapiserver.InspectResponse](resp.Body),
+    )
+	case http.StatusBadRequest:
+		return toError(resp)
+	default:
+		assert.Unreachable("cover all cases of status code")
+	}
+
+	return ""
+}
+
+func (c *client) ingressApply(apply *IngressApplyRequest) string {
+	r, err := http.NewRequest(
+		"POST",
+		unixURL(zeusapiserver.IngressApplyAPIPath(apply.Version, c.application)),
+		objectToJson(apply.Ingress),
+	)
+	assert.ErrNil(err)
+  fmt.Println("send!")
 
 	resp, err := c.http.Do(r)
 	failOnError(err, "Request failed: %v", err)

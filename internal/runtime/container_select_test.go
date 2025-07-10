@@ -20,7 +20,7 @@ func TestRuntimeSelectContainer(t *testing.T) {
 		ApplicationNameLabel(application),
 	}
 
-	container, err := NewContainer(
+	container, err := CreateNewContainer(
 		application,
 		WithImage("traefik/whoami:latest"),
 		WithPulling(),
@@ -57,7 +57,7 @@ func TestRuntimeSelectContainerWithNetwork(t *testing.T) {
 		ApplicationNameLabel(application),
 	}
 
-	container, err := NewContainer(
+	container, err := CreateNewContainer(
 		application,
 		WithImage("traefik/whoami:latest"),
 		WithPulling(),

@@ -12,7 +12,7 @@ const (
 )
 
 func pullStartAndRunAlping(cmd string) (*Container, error) {
-	return NewContainer(
+	return CreateNewContainer(
 		"testing",
 		WithImage("alpine:3.14"),
 		WithPulling(),

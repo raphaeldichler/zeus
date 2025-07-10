@@ -4,9 +4,11 @@
 package nginxcontroller
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 
+	"github.com/raphaeldichler/zeus/internal/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -22,22 +24,21 @@ type Client struct {
 
 func NewClient(
 	application string,
-) (*Client, error) {
-	socket := filepath.Join(HostSocketDirectory(application), "nginx.sock")
+) *Client {
 	conn, err := grpc.NewClient(
-		"unix://"+socket,
+		fmt.Sprintf("unix://%s", filepath.Join(HostSocketDirectory(), "nginx.sock")),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-	if err != nil {
-		return nil, err
-	}
+  // the configuration of the client should be correct
+  // currently, we dont see any other reason that this should fail
+  assert.ErrNil(err)
 
 	client := NewNginxControllerClient(conn)
 
 	return &Client{
 		NginxControllerClient: client,
 		conn:                  conn,
-	}, nil
+	}
 }
 
 func (self *Client) Close() error {

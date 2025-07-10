@@ -5,10 +5,9 @@ package ingress
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
 	"github.com/raphaeldichler/zeus/internal/nginxcontroller"
 	"github.com/raphaeldichler/zeus/internal/record"
@@ -24,25 +23,24 @@ const (
 
 func Sync(state *record.ApplicationRecord) {
 	log := state.Logger("ingress-daemon")
+	log.Info("Starting syncing ingress controllers, image: '%s'", state.Ingress.Metadata.Image)
 
-	log.Info("Starting syncing ingress controllers")
 	defer log.Info("Completed syncing ingress controllers")
 	if !state.Ingress.Enabled() {
+    log.Info("Ingress is disabled, skipping")
 		return
 	}
 
-	container, ok := SelectOrCreateIngressContainer(state)
-	if !ok {
+	optionalContainer := SelectOrCreateIngressContainer(state)
+  if optionalContainer.IsEmpty() {
 		return
 	}
-	assert.NotNil(container, "ok result must return valid container")
+  _ = optionalContainer.Get()
 
-	client, err := nginxcontroller.NewClient(state.Metadata.Application)
-	if err != nil {
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithNginxController(errtype.NginxClientConnection, err),
-		)
-		return
+	client := nginxcontroller.NewClient(state.Metadata.Application)
+	generationType := nginxcontroller.GenerateCertificateType_AuthoritySigned
+	if state.Metadata.Deployment == record.Development {
+		generationType = nginxcontroller.GenerateCertificateType_SelfSigned
 	}
 
 	for _, server := range state.Ingress.Servers {
@@ -57,18 +55,22 @@ func Sync(state *record.ApplicationRecord) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 		defer cancel()
 		resp, err := client.GenerateCertificates(ctx, &nginxcontroller.GenerateCertificateRequest{
-			Type:             nginxcontroller.GenerateCertificateType_AuthoritySigned,
+			Type:             generationType,
 			CertificateEmail: tls.CertificateEmail,
 			Domain:           server.Host,
 		})
 		if err != nil {
-			state.Ingress.Errors.SetTlsError(
-				errtype.FailedInteractionWithNginxController(errtype.NginxApply, err),
+			state.Ingress.SetError(
+				errtype.FailedInteractionWithNginxController(server.Host, err),
 			)
 			continue
 		}
-		assert.True(resp.Fullchain != "", "a fullchain must exists")
-		assert.True(resp.Privkey != "", "a privkey must exists")
+		if resp.Fullchain == "" || resp.Privkey == "" {
+			state.Ingress.SetError(
+				errtype.FailedObtainCertificate(server.Host, errors.New("no certificate obtained")),
+			)
+			continue
+		}
 
 		tls.FullchainPem = []byte(resp.Fullchain)
 		tls.PrivkeyPem = []byte(resp.Privkey)
@@ -78,10 +80,10 @@ func Sync(state *record.ApplicationRecord) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	_, err = client.SetIngressConfig(ctx, buildIngressConfigRequest(state))
+  _, err := client.SetIngressConfig(ctx, buildIngressConfigRequest(state))
 	if err != nil {
-		state.Ingress.Errors.SetIngressError(
-			errtype.FailedInteractionWithNginxController(errtype.NginxApply, err),
+		state.Ingress.SetError(
+			errtype.FailedInteractionWithNginxController("*", err),
 		)
 	}
 }
@@ -104,7 +106,7 @@ func buildIngressConfigRequest(state *record.ApplicationRecord) *nginxcontroller
 	)
 
 	for _, server := range state.Ingress.Servers {
-		if state.Ingress.Errors.ExistsTlsError(errtype.FailedObtainCertificateQuery(server.Host)) {
+		if state.Ingress.HasError(errtype.FailedObtainCertificateQuery(server.Host)) {
 			continue
 		}
 
@@ -120,10 +122,9 @@ func buildIngressConfigRequest(state *record.ApplicationRecord) *nginxcontroller
 			)
 		}
 
-		fmt.Println(server)
 		for _, loc := range server.HTTP.Paths {
 			matching := nginxcontroller.Matching_Prefix
-			if nginxcontroller.Matching_Exact.String() == loc.Matching {
+			if loc.Matching == "exact" {
 				matching = nginxcontroller.Matching_Exact
 			}
 

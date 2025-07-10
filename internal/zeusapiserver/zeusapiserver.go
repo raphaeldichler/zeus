@@ -4,9 +4,11 @@
 package zeusapiserver
 
 import (
+	"fmt"
 	"net"
 	"os"
 
+	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/server"
 )
 
@@ -34,14 +36,16 @@ func New() (*ZeusController, error) {
 
 	records, err := OpenAndCreateRecordCollection()
 	if err != nil {
+		fmt.Println("error", err)
 		return nil, err
 	}
 	applicationController := NewApplication(records)
-	orchestrator := newOrchestrator(records)
+	orchestrator := newOrchestrator(records, log.New("zeusapiserver", "orchestrator"))
 
 	self := &ZeusController{
 		application:  applicationController,
 		orchestrator: orchestrator,
+		records:      records,
 	}
 	self.server = server.New(
 		server.WithListener(listen),
@@ -78,12 +82,12 @@ func New() (*ZeusController, error) {
 		),
 		// Ingress
 		server.Get(
-			IngressInspectAPIPath,
+			ingressInspectAPIPath,
 			self.GetIngressInspect,
 			server.WithRequestDecoder(GetIngressInspectRequestDecoder),
 		),
 		server.Post(
-			IngressApplyAPIPath,
+			ingressApplyAPIPath,
 			self.PostIngressApply,
 			server.WithRequestDecoder(PostIngressApplyRequestDecoder),
 		),
