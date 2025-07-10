@@ -4,9 +4,20 @@
 package main
 
 import (
-	_ "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/coremain"
+	_ "github.com/coredns/coredns/plugin/forward"
+	_ "github.com/raphaeldichler/zeus/internal/dnscontroller"
 )
+
+var directives = []string{
+	"zeus",
+	"forward",
+}
+
+func init() {
+	dnsserver.Directives = directives
+}
 
 func main() {
 	coremain.Run()

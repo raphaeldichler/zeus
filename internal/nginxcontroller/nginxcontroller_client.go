@@ -29,12 +29,11 @@ func NewClient(
 		fmt.Sprintf("unix://%s", filepath.Join(HostSocketDirectory(), "nginx.sock")),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-  // the configuration of the client should be correct
-  // currently, we dont see any other reason that this should fail
-  assert.ErrNil(err)
+	// the configuration of the client should be correct
+	// currently, we dont see any other reason that this should fail
+	assert.ErrNil(err)
 
 	client := NewNginxControllerClient(conn)
-
 	return &Client{
 		NginxControllerClient: client,
 		conn:                  conn,

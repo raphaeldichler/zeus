@@ -8,29 +8,27 @@ import (
 
 	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/ingress"
-	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/record"
 	"github.com/raphaeldichler/zeus/internal/runtime"
+	log "github.com/raphaeldichler/zeus/internal/util/logger"
 )
 
 type (
-  // setup is the function which is used to setup the application state before syncronization
-  setup func() error
+	// setup is the function which is used to setup the application state before syncronization
+	setup func() error
 
-  // service is the function which is used to syncronize the application state
-  service func(record *record.ApplicationRecord)
+	// service is the function which is used to syncronize the application state
+	service func(record *record.ApplicationRecord)
 )
 
 var (
-  services []service = []service{
-      ingress.Sync,
-  }
-  setups []setup = []setup{
-    ingress.Setup,
-  }
+	services []service = []service{
+		ingress.Sync,
+	}
+	setups []setup = []setup{
+		ingress.Setup,
+	}
 )
-
-
 
 type orchestrator struct {
 	records *RecordCollection
@@ -92,12 +90,12 @@ func (o *orchestrator) orchestrate() {
 		return
 	}
 
-  for _, setup := range setups {
-    if err := setup(); err != nil {
-      o.logger.Error("Failed to setup application: %v", err)
-      return
-    }
-  }
+	for _, setup := range setups {
+		if err := setup(); err != nil {
+			o.logger.Error("Failed to setup application: %v", err)
+			return
+		}
+	}
 
 	nw, err := runtime.TrySelectApplicationNetwork(record.Metadata.Application)
 	if err != nil {

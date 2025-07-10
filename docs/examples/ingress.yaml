@@ -1,0 +1,31 @@
+version: v1.0
+ingress:
+  blockSubdomains:
+    enabled: true                                 # default: false
+  ipv6:  true
+  rules:
+    - host: admin.poseidon.com
+      tls: 
+        enabled: true                              # default: false               
+        certificateEmail: letsencrypt@poseidon.com # required if tls is enabled
+      http:
+        paths:
+          - path: /
+            matching: prefix
+            service:
+              name: grafana
+              port: application
+          - path: /rick
+            matching: exact
+            service:
+              name: rickroll
+              port: application
+
+    - host: poseidon.com
+      http:
+        paths:
+          - path: /
+            matching: prefix
+            service:
+              name: poseidon
+              port: application 

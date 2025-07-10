@@ -8,8 +8,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/server"
+	log "github.com/raphaeldichler/zeus/internal/util/logger"
 )
 
 const SocketPath = "/run/zeus/zeusd.sock"

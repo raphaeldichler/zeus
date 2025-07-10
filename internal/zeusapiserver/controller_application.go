@@ -14,8 +14,8 @@ import (
 	"unicode"
 
 	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/raphaeldichler/zeus/internal/log"
 	"github.com/raphaeldichler/zeus/internal/record"
+	log "github.com/raphaeldichler/zeus/internal/util/logger"
 	"go.etcd.io/bbolt"
 	bboltErr "go.etcd.io/bbolt/errors"
 )

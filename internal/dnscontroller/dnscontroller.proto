@@ -6,21 +6,32 @@ syntax = "proto3";
 package zeus.dnscontroller;
 option go_package = "github.com/raphaeldichler/zeus/internal/dnscontroller";
 
-message DNSRequest {
-  string Domain = 1;
-  string IP = 2;
+enum DNSEntryType {
+  Internal = 0;
+  External = 1;
 }
 
-message DNSResponse {}
+message DNSSetRequest {
+  string NetworkHash = 1;
+  repeated DNSSetEntryRequest Entries = 2;
+}
+
+message DNSSetEntryRequest {
+  string Domain = 1;
+  DNSEntryType Type = 2;
+}
+
+message DNSSetResponse {
+  repeated DNSEntry DNSEntries = 1;
+}
 
 message DNSEntry {
-  string Domain = 1;
+  string Domain = 1;  
+  string IP = 2;      
 }
 
 service DNSController {
 
-  rpc SetDNSEntry(DNSRequest) returns (DNSResponse) {}
-
-  rpc DeleteDNSEntry(DNSRequest) returns (DNSResponse) {}
+  rpc SetDNSEntry(DNSSetRequest) returns (DNSSetResponse) {}
 
 }
