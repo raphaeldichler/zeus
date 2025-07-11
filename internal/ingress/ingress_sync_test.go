@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/nginxcontroller"
 	"github.com/raphaeldichler/zeus/internal/record"
 	"github.com/raphaeldichler/zeus/internal/runtime"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 var image = ""

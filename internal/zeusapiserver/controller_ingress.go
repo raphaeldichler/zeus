@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/ingress"
 	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
 	"github.com/raphaeldichler/zeus/internal/record"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	bboltErr "go.etcd.io/bbolt/errors"
 )
 

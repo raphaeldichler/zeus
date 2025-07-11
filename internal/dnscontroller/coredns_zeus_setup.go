@@ -69,7 +69,7 @@ func (z *ZeusDns) setIpMap(m map[string]string) {
 func (z *ZeusDns) Name() string { return pluginName }
 
 func (z *ZeusDns) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-  corednsLog.Info("New DNS request, map: %v", z.ipMap)
+  corednsLog.Infof("New DNS request, map: %v", z.ipMap)
 	z.mu.Lock()
 	defer z.mu.Unlock()
 

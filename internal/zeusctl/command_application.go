@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
 	"github.com/spf13/cobra"
 )

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +30,7 @@ func ingressCommands(rootCmd *cobra.Command, clientProvider *contextProvider) {
 }
 
 type IngressApplyRequest struct {
-	Version                               string `json:"version" yaml:"version"`
+	Version string                                `json:"version" yaml:"version"`
 	Ingress zeusapiserver.IngressApplyRequestBody `json:"ingress" yaml:"ingress"`
 }
 
@@ -63,9 +63,9 @@ func inspectIngress(clientProvider *contextProvider) {
 		Use:   "inspect",
 		Short: "Inspect ingress configuration",
 		Run: func(cmd *cobra.Command, args []string) {
-      fmt.Println(
-        clientProvider.client.inspectIngress(),
-      )
+			fmt.Println(
+				clientProvider.client.inspectIngress(),
+			)
 		},
 	}
 
@@ -86,8 +86,8 @@ func (c *client) inspectIngress() string {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		return c.toOutput(
-      toObject[zeusapiserver.InspectResponse](resp.Body),
-    )
+			toObject[zeusapiserver.InspectResponse](resp.Body),
+		)
 	case http.StatusBadRequest:
 		return toError(resp)
 	default:
@@ -104,7 +104,7 @@ func (c *client) ingressApply(apply *IngressApplyRequest) string {
 		objectToJson(apply.Ingress),
 	)
 	assert.ErrNil(err)
-  fmt.Println("send!")
+	fmt.Println("send!")
 
 	resp, err := c.http.Do(r)
 	failOnError(err, "Request failed: %v", err)

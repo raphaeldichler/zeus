@@ -11,11 +11,10 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/go-connections/nat"
-	"github.com/raphaeldichler/zeus/internal/assert"
-	"github.com/raphaeldichler/zeus/internal/ingress/errtype"
 	"github.com/raphaeldichler/zeus/internal/record"
 	"github.com/raphaeldichler/zeus/internal/runtime"
 	runtimeErr "github.com/raphaeldichler/zeus/internal/runtime/errtype"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 var (

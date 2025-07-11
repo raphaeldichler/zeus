@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 // ipRing is a simple ring buffer to store the ip addresses which can be used to set the dns entries.

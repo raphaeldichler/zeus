@@ -3,7 +3,7 @@
 
 package runtime
 
-import "github.com/raphaeldichler/zeus/internal/assert"
+import "github.com/raphaeldichler/zeus/internal/util/assert"
 
 type Label struct {
 	key   string

@@ -4,7 +4,7 @@
 package nginxcontroller
 
 import (
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 type IngressRequestBuilder struct {

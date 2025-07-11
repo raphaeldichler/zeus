@@ -4,7 +4,7 @@
 package dnscontroller
 
 import (
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -19,14 +19,14 @@ func NewClient() *Client {
 		"unix:////zeus/dns/dns.sock",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
-  // the configuration of the client should be correct
-  // currently, we dont see any other reason that this should fail
-  assert.ErrNil(err)
+	// the configuration of the client should be correct
+	// currently, we dont see any other reason that this should fail
+	assert.ErrNil(err)
 
 	client := NewDNSControllerClient(conn)
 	return &Client{
 		DNSControllerClient: client,
-		conn:                  conn,
+		conn:                conn,
 	}
 }
 

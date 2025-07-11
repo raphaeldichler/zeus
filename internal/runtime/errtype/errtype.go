@@ -4,8 +4,8 @@
 package errtype
 
 import (
-	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/record"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 type DockerDaemonInteraction int
@@ -26,10 +26,9 @@ var dockerDaemomnInteractionMapping map[DockerDaemonInteraction]string = map[Doc
 	DockerCreateNetwork:    "network",
 }
 
-
 func FailedInteractionWithDockerDaemon(
-  identifier DockerDaemonInteraction, 
-  err error,
+	identifier DockerDaemonInteraction,
+	err error,
 ) record.IngressErrorEntryRecord {
 	assert.True(err != nil, "the error must exist")
 	id, ok := dockerDaemomnInteractionMapping[identifier]

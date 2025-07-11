@@ -8,7 +8,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 func TestRuntimeSelectNetwork(t *testing.T) {

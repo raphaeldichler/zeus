@@ -6,7 +6,7 @@ package dnscontroller
 import (
 	"slices"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 type dnsEntryState struct {

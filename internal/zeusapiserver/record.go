@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/record"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"go.etcd.io/bbolt"
 	bboltErr "go.etcd.io/bbolt/errors"
 )
@@ -233,18 +233,18 @@ func (self *RecordCollection) all() []*record.ApplicationRecord {
 
 // Synchronizes the application state with the other application state. If the application is not enabled it will panic.
 func (self *RecordCollection) sync(other *record.ApplicationRecord) error {
-  self.mu.Lock()
-  defer self.mu.Unlock()
+	self.mu.Lock()
+	defer self.mu.Unlock()
 
-  return self.db.Update(func(tx *bbolt.Tx) error {
+	return self.db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(other.Metadata.Application))
-    assert.NotNil(b, "application must have a record entry")
+		assert.NotNil(b, "application must have a record entry")
 
 		recordBytes := b.Get(RecordKey)
 		assert.True(recordBytes != nil, "application must have a record entry")
 
-    appRecord := record.FromGob(recordBytes)
-    appRecord.Sync(other)
+		appRecord := record.FromGob(recordBytes)
+		appRecord.Sync(other)
 
 		blob := appRecord.ToGob()
 		assert.True(len(blob) < bbolt.MaxValueSize, "blob must stay under 2GB")
@@ -265,18 +265,18 @@ func (self *RecordCollection) tx(app application, f func(rec *record.Application
 	defer self.mu.Unlock()
 
 	return self.db.Update(func(tx *bbolt.Tx) error {
-	  b := tx.Bucket([]byte(app))
+		b := tx.Bucket([]byte(app))
 		if b == nil {
 			return bboltErr.ErrBucketNotFound
 		}
 
 		recordBytes := b.Get(RecordKey)
 		assert.NotNil(b, "application must have a record entry")
-    appRecord := record.FromGob(recordBytes)
+		appRecord := record.FromGob(recordBytes)
 
-    if err := f(appRecord); err != nil {
-      return err
-    }
+		if err := f(appRecord); err != nil {
+			return err
+		}
 
 		blob := appRecord.ToGob()
 		assert.True(len(blob) < bbolt.MaxValueSize, "blob must stay under 2GB")

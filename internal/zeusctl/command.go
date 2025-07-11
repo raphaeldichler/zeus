@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"github.com/raphaeldichler/zeus/internal/zeusctl/formatter"
 	"github.com/spf13/cobra"
 )

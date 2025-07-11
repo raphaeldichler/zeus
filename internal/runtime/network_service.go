@@ -6,7 +6,7 @@ package runtime
 import (
 	"fmt"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 type serviceAddressRing struct {

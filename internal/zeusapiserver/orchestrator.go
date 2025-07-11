@@ -6,10 +6,10 @@ package zeusapiserver
 import (
 	"context"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/ingress"
 	"github.com/raphaeldichler/zeus/internal/record"
 	"github.com/raphaeldichler/zeus/internal/runtime"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	log "github.com/raphaeldichler/zeus/internal/util/logger"
 )
 

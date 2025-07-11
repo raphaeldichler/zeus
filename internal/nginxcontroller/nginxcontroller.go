@@ -16,7 +16,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	log "github.com/raphaeldichler/zeus/internal/util/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

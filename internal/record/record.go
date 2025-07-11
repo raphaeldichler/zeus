@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"github.com/raphaeldichler/zeus/internal/util/logger"
 )
 

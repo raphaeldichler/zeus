@@ -3,7 +3,7 @@
 
 package optional
 
-import "github.com/raphaeldichler/zeus/internal/assert"
+import "github.com/raphaeldichler/zeus/internal/util/assert"
 
 type Optional[T any] struct {
 	t *T
@@ -25,12 +25,12 @@ func (o Optional[T]) IsEmpty() bool {
 	return o.t == nil
 }
 
-func (o Optional[T]) IfPresent(f func (*T) (*T)) Optional[T] {
-  if o.IsEmpty() {
-    return o
-  }
+func (o Optional[T]) IfPresent(f func(*T) *T) Optional[T] {
+	if o.IsEmpty() {
+		return o
+	}
 
-  return Of(f(o.t))
+	return Of(f(o.t))
 }
 
 func (o Optional[T]) Get() *T {

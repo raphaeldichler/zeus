@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/docker/docker/client"
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 const NetworkDaemonName = "network"

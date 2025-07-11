@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"github.com/raphaeldichler/zeus/internal/zeusapiserver"
 	"github.com/raphaeldichler/zeus/internal/zeusctl/formatter"
 	"golang.org/x/crypto/ssh"
@@ -148,16 +148,16 @@ func unixURL(path string) string {
 }
 
 func yamlToObject[T any](r io.ReadCloser) *T {
-  obj := new(T)
-  err := yaml.NewDecoder(r).Decode(obj)
-  assert.ErrNil(err)
-  return obj
+	obj := new(T)
+	err := yaml.NewDecoder(r).Decode(obj)
+	assert.ErrNil(err)
+	return obj
 }
 
 func objectToJson(obj any) io.Reader {
-  json, err := json.Marshal(obj)
-  assert.ErrNil(err)
-  return bytes.NewReader(json)
+	json, err := json.Marshal(obj)
+	assert.ErrNil(err)
+	return bytes.NewReader(json)
 }
 
 func toObject[T any](r io.ReadCloser) *T {

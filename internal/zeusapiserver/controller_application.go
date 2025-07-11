@@ -13,8 +13,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
 	"github.com/raphaeldichler/zeus/internal/record"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	log "github.com/raphaeldichler/zeus/internal/util/logger"
 	"go.etcd.io/bbolt"
 	bboltErr "go.etcd.io/bbolt/errors"

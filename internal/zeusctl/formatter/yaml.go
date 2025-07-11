@@ -1,7 +1,7 @@
 package formatter
 
 import (
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 
 	"gopkg.in/yaml.v3"
 )

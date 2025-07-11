@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 var (

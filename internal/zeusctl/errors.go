@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 	"github.com/spf13/cobra"
 )
 

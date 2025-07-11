@@ -6,7 +6,7 @@ package formatter
 import (
 	"encoding/json"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 type JSON struct{}

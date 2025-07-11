@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/raphaeldichler/zeus/internal/assert"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 const tabWidth = 4
