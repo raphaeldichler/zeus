@@ -6,6 +6,7 @@ package zeusapiserver
 import (
 	"context"
 
+	"github.com/raphaeldichler/zeus/internal/dnscontroller"
 	"github.com/raphaeldichler/zeus/internal/ingress"
 	"github.com/raphaeldichler/zeus/internal/record"
 	"github.com/raphaeldichler/zeus/internal/runtime"
@@ -21,7 +22,17 @@ type (
 	service func(record *record.ApplicationRecord)
 )
 
+// EnviromentManager is responsible for setting up the enviroment on the host system.
+// All operations which are done via the enviroment manager are not application
+// dependend, but rather service dependend.
+type EnviromentManager interface {
+	Setup() error
+}
+
 var (
+	environmentManagers = []EnviromentManager{
+		dnscontroller.SocketFileEnvironmentManager,
+	}
 	services []service = []service{
 		ingress.Sync,
 	}
@@ -78,6 +89,18 @@ func (o *orchestrator) worker(ctx context.Context) {
 
 func (o *orchestrator) orchestrate() {
 	o.logger.Info("Orchestration was invoked")
+
+	var failed = false
+	for _, environmentManager := range environmentManagers {
+		if err := environmentManager.Setup(); err != nil {
+			o.logger.Info("")
+			failed = true
+		}
+	}
+	if failed {
+		o.logger.Info("")
+		return
+	}
 
 	record := o.records.getEnabledApplication()
 	if record == nil {

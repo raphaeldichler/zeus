@@ -9,7 +9,6 @@ import (
 	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
-
 type dnsEntryState struct {
 	// maps the domain to the ip address which the DNS is pointing to
 	entries map[string]string
@@ -17,10 +16,10 @@ type dnsEntryState struct {
 	ring *ipRing
 }
 
-func newDNSEntryState(networkPart uint8) *dnsEntryState {
+func newDNSEntryState(network uint8, identifier uint8) *dnsEntryState {
 	return &dnsEntryState{
 		entries: make(map[string]string),
-		ring:    newIpRing(networkPart),
+		ring:    newIpRing(network, identifier),
 	}
 }
 

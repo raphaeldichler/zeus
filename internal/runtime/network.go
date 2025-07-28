@@ -5,8 +5,10 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/docker/docker/client"
+	"github.com/raphaeldichler/zeus/internal/dnscontroller"
 	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
@@ -22,13 +24,19 @@ type Network struct {
 	id     string
 	client *client.Client
 	name   string
+
+  dns *Container
+  dnsClient dnscontroller.Client
 }
 
-// Interact with the docker daemon and initialises a new network
+// Interact with the docker daemon and initialises a new network. Additionally start a DNS sever inside the network.
 //
-// The network gets labels with:
+// The network gets labeled with:
 //   - zeus.object.type=network
 //   - zeus.application.name={application}
+// The DNS gets labeled with:
+//   - zeus.object.type=dns
+//   - zeus.application.name={applicaiton}
 func CreateNewNetwork(
 	application string,
 ) (*Network, error) {
@@ -40,7 +48,32 @@ func CreateNewNetwork(
 		return nil, err
 	}
 
-	return newNetwork(networkId, networkName), nil
+  network := newNetwork(networkId, networkName)
+
+  dnsContainer, err := CreateNewContainer(
+    application,
+    WithImage("coredns:v1"),
+    WithConnectedToNetwork(network),
+    WithLabels(
+      ObjectTypeLabel(DNSObject),
+      ApplicationNameLabel(application),
+    ),
+    WithMount("/run/zeus/", "/run/zeus/"),
+  )
+  fmt.Println(dnsContainer.id)
+  if err != nil {
+    if err := network.Cleanup(); err != nil {
+      // also the network cleanup can fail, for recovery
+    }
+
+    return nil, err
+  }
+  dnsClient := dnscontroller.NewClient()
+
+  network.dns = dnsContainer
+  network.dnsClient = *dnsClient
+
+  return network, nil
 }
 
 func newNetwork(

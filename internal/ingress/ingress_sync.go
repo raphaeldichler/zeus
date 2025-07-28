@@ -21,21 +21,28 @@ const (
 	TlsNewRenewThreshold = time.Hour * 24 * 40
 )
 
+/*
+Sync:
+  1) exist all container which are mandatory
+  2) are they in a valid state
+  3) update state
+*/
+
 func Sync(state *record.ApplicationRecord) {
 	log := state.Logger("ingress-daemon")
 	log.Info("Starting syncing ingress controllers, image: '%s'", state.Ingress.Metadata.Image)
 
 	defer log.Info("Completed syncing ingress controllers")
 	if !state.Ingress.Enabled() {
-    log.Info("Ingress is disabled, skipping")
+		log.Info("Ingress is disabled, skipping")
 		return
 	}
 
 	optionalContainer := SelectOrCreateIngressContainer(state)
-  if optionalContainer.IsEmpty() {
+	if optionalContainer.IsEmpty() {
 		return
 	}
-  _ = optionalContainer.Get()
+	_ = optionalContainer.Get()
 
 	client := nginxcontroller.NewClient(state.Metadata.Application)
 	generationType := nginxcontroller.GenerateCertificateType_AuthoritySigned
@@ -80,7 +87,7 @@ func Sync(state *record.ApplicationRecord) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-  _, err := client.SetIngressConfig(ctx, buildIngressConfigRequest(state))
+	_, err := client.SetIngressConfig(ctx, buildIngressConfigRequest(state))
 	if err != nil {
 		state.Ingress.SetError(
 			errtype.FailedInteractionWithNginxController("*", err),

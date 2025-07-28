@@ -7,17 +7,24 @@ import (
 	"context"
 	"math/big"
 	"net"
-	"os"
 
 	"github.com/raphaeldichler/zeus/internal/util/assert"
 	log "github.com/raphaeldichler/zeus/internal/util/logger"
+	"github.com/raphaeldichler/zeus/internal/util/socket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+var SocketFileEnvironmentManager = socket.NewFileEnvironmentManager(
+  "/run/zeus/dns",
+  "dns.sock",
+  0666,
+)
+
 const (
-	SocketPath = "/run/zeus/dns.sock"
+  internalDNSIdentifier uint8 = 0
+  externalDNSIdentifier uint8 = 100
 )
 
 type Controller struct {
@@ -26,38 +33,32 @@ type Controller struct {
 	listener net.Listener
 	log      *log.Logger
 
-	networkPart uint8
-	plg         *ZeusDns
+	plg *ZeusDns
 
+  networkHash string
 	internalDNS *dnsEntryState
 	externalDNS *dnsEntryState
 }
 
-func New(dnsPlugin *ZeusDns) (*Controller, error) {
-	if _, err := os.Stat(SocketPath); err == nil {
-		if err := os.Remove(SocketPath); err != nil {
-			return nil, err
-		}
-	}
+func New(
+  dnsPlugin *ZeusDns,
+  networkHash string,
+) (*Controller, error) {
+  listen, err := SocketFileEnvironmentManager.Listen()
+  if err != nil {
+    return nil, err
+  }
 
-	listen, err := net.Listen("unix", SocketPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := os.Chmod(SocketPath, 0666); err != nil {
-		return nil, err
-	}
-
+  network := networkHashToIpPart(networkHash)
 	s := grpc.NewServer()
 	srv := &Controller{
 		server:      s,
 		listener:    listen,
 		log:         log.New("dns", "controller"),
-		networkPart: 0,
 		plg:         dnsPlugin,
-		internalDNS: newDNSEntryState(0),
-		externalDNS: newDNSEntryState(100),
+    networkHash: networkHash,
+		internalDNS: newDNSEntryState(network, internalDNSIdentifier),
+		externalDNS: newDNSEntryState(network, externalDNSIdentifier),
 	}
 	RegisterDNSControllerServer(s, srv)
 
@@ -72,14 +73,9 @@ func (c *Controller) SetDNSEntry(
 	ctx context.Context,
 	req *DNSSetRequest,
 ) (*DNSSetResponse, error) {
-	networkPart := networkHashToIpPart(req.NetworkHash)
-	if c.networkPart == 0 {
-		c.networkPart = networkPart
-	}
-
-	if c.networkPart != networkPart {
-		return nil, status.Error(codes.Unknown, "network part must not change")
-	}
+  if req.NetworkHash != c.networkHash {
+    return nil, status.Error(codes.Unknown, "network part differs from controller")
+  }
 
 	var (
 		internal []string = nil

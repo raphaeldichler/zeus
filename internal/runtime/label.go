@@ -15,6 +15,7 @@ type ObjectLabel int
 const (
 	IngressObject ObjectLabel = iota + 1
 	NetworkObject
+	DNSObject
 )
 
 const (
@@ -26,6 +27,7 @@ const (
 var objectLabelMapping map[ObjectLabel]string = map[ObjectLabel]string{
 	IngressObject: "ingress",
 	NetworkObject: "network",
+	DNSObject:     "dns",
 }
 
 // zeus.object.type={object}

@@ -16,7 +16,7 @@ type Client struct {
 
 func NewClient() *Client {
 	conn, err := grpc.NewClient(
-		"unix:////run/zeus/dns.sock",
+    DNSFileEnvironmentManager.UnixSocketURI(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	// the configuration of the client should be correct

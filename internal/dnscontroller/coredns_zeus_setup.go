@@ -14,6 +14,7 @@ import (
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
+	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
 const (
@@ -29,9 +30,12 @@ func init() {
 
 func setup(c *caddy.Controller) error {
 	c.Next()
+	args := c.RemainingArgs()
+	assert.True(len(args) == 1, "exactly one argument is required")
 
+	networkHash := args[0]
 	p := &ZeusDns{}
-	server, err := New(p)
+	server, err := New(p, networkHash)
 	if err != nil {
 		return err
 	}

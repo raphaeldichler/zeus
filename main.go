@@ -16,7 +16,7 @@ func main() {
 		NetworkHash: "1234",
 		Entries: []*dnscontroller.DNSSetEntryRequest{
 			{
-				Domain: "foo.com",
+				Domain: "foo1.com",
 				Type:   dnscontroller.DNSEntryType_Internal,
 			},
 			{
@@ -31,10 +31,13 @@ func main() {
 	})
 
 	fmt.Println(err)
-  for _, e := range r.DNSEntries {
-	  fmt.Println(e.Domain)
-	  fmt.Println(e.IP)
-    fmt.Println("---")
-  }
+	for _, e := range r.DNSEntries {
+		fmt.Println(e.Domain)
+		fmt.Println(e.IP)
+		fmt.Println("---")
+	}
+
+  //_, err := runtime.CreateNewNetwork("test")
+	//fmt.Println(err)
 
 }
