@@ -56,8 +56,8 @@ func New(dnsPlugin *ZeusDns) (*Controller, error) {
 		log:         log.New("dns", "controller"),
 		networkPart: 0,
 		plg:         dnsPlugin,
-		internalDNS: newDNSEntryState(),
-		externalDNS: newDNSEntryState(),
+		internalDNS: newDNSEntryState(0),
+		externalDNS: newDNSEntryState(100),
 	}
 	RegisterDNSControllerServer(s, srv)
 
@@ -68,16 +68,16 @@ func (self *Controller) Run() error {
 	return self.server.Serve(self.listener)
 }
 
-func (self *Controller) SetDNSEntry(
+func (c *Controller) SetDNSEntry(
 	ctx context.Context,
 	req *DNSSetRequest,
 ) (*DNSSetResponse, error) {
 	networkPart := networkHashToIpPart(req.NetworkHash)
-	if self.networkPart == 0 {
-		self.networkPart = networkPart
+	if c.networkPart == 0 {
+		c.networkPart = networkPart
 	}
 
-	if self.networkPart != networkPart {
+	if c.networkPart != networkPart {
 		return nil, status.Error(codes.Unknown, "network part must not change")
 	}
 
@@ -94,15 +94,35 @@ func (self *Controller) SetDNSEntry(
 		}
 	}
 
-	self.internalDNS.update(internal)
-	self.externalDNS.update(external)
+	c.internalDNS.update(internal)
+	c.externalDNS.update(external)
 
 	ipMap := make(map[string]string)
-	ipMap = self.internalDNS.appendTo(ipMap)
-	ipMap = self.externalDNS.appendTo(ipMap)
-	self.plg.setIpMap(ipMap)
+	ipMap = c.internalDNS.appendTo(ipMap)
+	ipMap = c.externalDNS.appendTo(ipMap)
+	c.plg.setIpMap(ipMap)
 
-	return &DNSSetResponse{}, nil
+	return c.toResponse(), nil
+}
+
+func (c *Controller) toResponse() *DNSSetResponse {
+	r := new(DNSSetResponse)
+
+	for _, entries := range []map[string]string{
+		c.internalDNS.entries,
+		c.externalDNS.entries,
+	} {
+		for domain, ip := range entries {
+			e := &DNSEntry{
+				Domain: domain,
+				IP:     ip,
+			}
+			r.DNSEntries = append(r.DNSEntries, e)
+		}
+
+	}
+
+	return r
 }
 
 func networkHashToIpPart(networkHash string) uint8 {

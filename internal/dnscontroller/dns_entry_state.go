@@ -9,6 +9,7 @@ import (
 	"github.com/raphaeldichler/zeus/internal/util/assert"
 )
 
+
 type dnsEntryState struct {
 	// maps the domain to the ip address which the DNS is pointing to
 	entries map[string]string
@@ -16,10 +17,10 @@ type dnsEntryState struct {
 	ring *ipRing
 }
 
-func newDNSEntryState() *dnsEntryState {
+func newDNSEntryState(networkPart uint8) *dnsEntryState {
 	return &dnsEntryState{
 		entries: make(map[string]string),
-		ring:    newIpRing(0),
+		ring:    newIpRing(networkPart),
 	}
 }
 
@@ -47,11 +48,11 @@ func (d *dnsEntryState) update(domains []string) {
 }
 
 func (d *dnsEntryState) appendTo(ipMap map[string]string) map[string]string {
-  for domain, ip := range d.entries {
-    _, ok := ipMap[domain]
-    assert.False(ok, "domain must not be in ipMap")
-    ipMap[domain] = ip
-  }
+	for domain, ip := range d.entries {
+		_, ok := ipMap[domain]
+		assert.False(ok, "domain must not be in ipMap")
+		ipMap[domain] = ip
+	}
 
-  return ipMap
+	return ipMap
 }

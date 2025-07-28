@@ -15,17 +15,26 @@ func main() {
 	r, err := client.SetDNSEntry(ctx, &dnscontroller.DNSSetRequest{
 		NetworkHash: "1234",
 		Entries: []*dnscontroller.DNSSetEntryRequest{
-			&dnscontroller.DNSSetEntryRequest{
+			{
 				Domain: "foo.com",
 				Type:   dnscontroller.DNSEntryType_Internal,
 			},
-			&dnscontroller.DNSSetEntryRequest{
-				Domain: "bee.love.com",
+			{
+				Domain: "bra.com",
 				Type:   dnscontroller.DNSEntryType_Internal,
+			},
+			{
+				Domain: "got.com",
+				Type:   dnscontroller.DNSEntryType_External,
 			},
 		},
 	})
 
-	fmt.Println(r)
 	fmt.Println(err)
+  for _, e := range r.DNSEntries {
+	  fmt.Println(e.Domain)
+	  fmt.Println(e.IP)
+    fmt.Println("---")
+  }
+
 }

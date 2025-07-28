@@ -12,19 +12,25 @@ import (
 )
 
 // ipRing is a simple ring buffer to store the ip addresses which can be used to set the dns entries.
+// 10.network.identifier.ring
 type ipRing struct {
 	openParts   [255]uint8
-	networkPart uint8
+	network uint8
+  identifier  uint8
 	idx         uint8
 }
 
-func newIpRing(networkPart uint8) *ipRing {
+func newIpRing(
+  network uint8,
+  identifier uint8,
+) *ipRing {
 	ring := new(ipRing)
 
-	ring.networkPart = networkPart
+	ring.network = network
+  ring.identifier = identifier
 	ring.idx = 0
-	for i := 0; i < 255; i++ {
-		ring.openParts[i] = 0
+  for i := range 255 {
+		ring.openParts[i] = uint8(i)
 	}
 
 	return ring
@@ -35,16 +41,13 @@ func (i *ipRing) next() string {
 	i.idx += 1
 	assert.True(i.idx <= 255, "idx must not exceed 255")
 
-	return fmt.Sprintf("10.%d.10.%d", i.networkPart, next)
+	return fmt.Sprintf("10.%d.%d.%d", i.network, i.identifier, next)
 }
 
 // Returns the ip back to the pool, if it was not given away via next() the function returns false.
 func (i *ipRing) returnToPool(ip string) bool {
 	returnedIpParts := strings.Split(ip, ".")
-	assert.True(len(returnedIpParts) == 4, "ip must be in the form of '10.x.10.y'")
-	assert.True(returnedIpParts[0] == "10", "ip must be in the form of '10.x.10.y'")
-	assert.True(returnedIpParts[1] == fmt.Sprintf("%d", i.networkPart), "ip must be in the form of '10.x.10.y'")
-	assert.True(returnedIpParts[2] == "10", "ip must be in the form of '10.x.10.y'")
+	assert.True(len(returnedIpParts) == 4, "ip must be in the form of '10.network.identifier.y'")
 
 	returnedPart, err := strconv.Atoi(returnedIpParts[3])
 	assert.ErrNil(err)
