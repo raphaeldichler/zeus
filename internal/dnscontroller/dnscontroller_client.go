@@ -16,7 +16,7 @@ type Client struct {
 
 func NewClient() *Client {
 	conn, err := grpc.NewClient(
-    DNSFileEnvironmentManager.UnixSocketURI(),
+    SocketFileEnvironmentManager.UnixSocketURI(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	// the configuration of the client should be correct
